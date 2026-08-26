@@ -38,8 +38,6 @@ model User {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   dataRooms     DataRoom[]
-  folders       Folder[]
-  files         File[]
   sharesCreated Share[]    @relation("share_creator")
   sharesGranted Share[]    @relation("share_grantee")
 
@@ -73,7 +71,6 @@ model Folder {
   // folder" and "is this node under something shared" cheap.
   path       String
   depth      Int
-  ownerId    String  @map("owner_id") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -81,12 +78,13 @@ model Folder {
   dataRoom DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
   parent   Folder?  @relation("folder_tree", fields: [parentId], references: [id], onDelete: Cascade)
   children Folder[] @relation("folder_tree")
-  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   files    File[]
 
   @@unique([parentId, name])
   @@index([dataRoomId])
-  @@index([ownerId])
+  // text_pattern_ops, because every subtree query is `path like '<prefix>%'`
+  // and a default-collation btree will not serve that.
+  @@index([path(ops: raw("text_pattern_ops"))])
   @@map("folders")
 }
 
@@ -100,19 +98,15 @@ model File {
   storageKey String @map("storage_key")
   sizeBytes  BigInt @map("size_bytes")
   mimeType   String @map("mime_type")
-  ownerId    String @map("owner_id") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   dataRoom DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
   folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
-  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@unique([folderId, name])
-  @@index([folderId, name, id])
   @@index([dataRoomId])
-  @@index([ownerId])
   @@map("files")
 }
 
