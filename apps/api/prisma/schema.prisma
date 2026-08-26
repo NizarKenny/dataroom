@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ResourceType {
+  data_room
+  folder
+  file
+
+  @@map("resource_type")
+}
+
+enum ShareMode {
+  public_link
+  user
+
+  @@map("share_mode")
+}
+
+enum ShareRole {
+  viewer
+
+  @@map("share_role")
+}
+
+// Supabase owns auth.users, Prisma owns everything here. This table mirrors the
+// parts we need so that inviting someone by email, and showing who a room is
+// shared with, stay ordinary joins instead of cross-schema reads.
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  dataRooms     DataRoom[]
+  folders       Folder[]
+  files         File[]
+  sharesCreated Share[]    @relation("share_creator")
+  sharesGranted Share[]    @relation("share_grantee")
+
+  @@map("users")
+}
+
+model DataRoom {
+  id        String   @id @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folders Folder[]
+  files   File[]
+  shares  Share[]
+
+  @@index([ownerId, name])
+  @@map("data_rooms")
+}
+
+model Folder {
+  id         String  @id @db.Uuid
+  dataRoomId String  @map("data_room_id") @db.Uuid
+  parentId   String? @map("parent_id") @db.Uuid
+  name       String
+  // Ancestor ids, slash-delimited and slash-terminated: "/<root>/<child>/<self>/".
+  // Built from ids, not names, so a rename never rewrites the subtree. Any
+  // subtree is then one prefix scan, which is what makes both "size of this
+  // folder" and "is this node under something shared" cheap.
+  path       String
+  depth      Int
+  ownerId    String  @map("owner_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  dataRoom DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  parent   Folder?  @relation("folder_tree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("folder_tree")
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  files    File[]
+
+  @@unique([parentId, name])
+  @@index([dataRoomId])
+  @@index([ownerId])
+  @@map("folders")
+}
+
+model File {
+  id         String @id @db.Uuid
+  dataRoomId String @map("data_room_id") @db.Uuid
+  folderId   String @map("folder_id") @db.Uuid
+  name       String
+  // Object key in the private bucket, "<data_room_id>/<file_id>". Derived from
+  // ids alone, so renaming or moving a file never touches the blob.
+  storageKey String @map("storage_key")
+  sizeBytes  BigInt @map("size_bytes")
+  mimeType   String @map("mime_type")
+  ownerId    String @map("owner_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  dataRoom DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  owner    User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([folderId, name])
+  @@index([folderId, name, id])
+  @@index([dataRoomId])
+  @@index([ownerId])
+  @@map("files")
+}
+
+model Share {
+  id         String       @id @db.Uuid
+  dataRoomId String       @map("data_room_id") @db.Uuid
+  resourceType ResourceType @map("resource_type")
+  // Points at a data room, a folder or a file, so no foreign key. The pairing
+  // with resourceType is enforced by a check constraint in the migration.
+  resourceId String       @map("resource_id") @db.Uuid
+  // Copy of the shared folder's path (the room's root folder for a room share,
+  // null for a file share). Access then asks whether any of a node's ancestor
+  // paths appears here, which is an equality lookup rather than a scan.
+  resourcePath String?    @map("resource_path")
+
+  mode  ShareMode
+  role  ShareRole @default(viewer)
+  token String?   @unique
+
+  granteeUserId String? @map("grantee_user_id") @db.Uuid
+  // Kept alongside granteeUserId so a room can be shared with someone who has
+  // not signed up yet; the id is filled in when they first authenticate.
+  granteeEmail  String? @map("grantee_email")
+
+  createdById String    @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  dataRoom  DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  createdBy User     @relation("share_creator", fields: [createdById], references: [id], onDelete: Cascade)
+  grantee   User?    @relation("share_grantee", fields: [granteeUserId], references: [id], onDelete: Cascade)
+
+  @@index([dataRoomId])
+  @@index([createdById])
+  @@map("shares")
+}
