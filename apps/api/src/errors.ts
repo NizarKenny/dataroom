@@ -25,8 +25,15 @@ export const unauthorized = (message = 'Sign in to continue') =>
 export const notFound = (what = 'item') =>
   new AppError(404, 'not_found', `That ${what} does not exist, or you do not have access to it`)
 
-export const nameTaken = (name: string, where: string) =>
-  new AppError(409, 'name_taken', `A file with this name is already in ${where}`, { name, where })
+/**
+ * Unlike notFound, this one is safe to be precise about: the caller has already
+ * been shown the thing, so the only new fact is that their access is read-only.
+ */
+export const readOnly = () =>
+  new AppError(403, 'read_only', 'You can view this data room, but not change it')
+
+export const nameTaken = (what: 'file' | 'folder', name: string) =>
+  new AppError(409, 'name_taken', `A ${what} called "${name}" is already here`, { name })
 
 export const shareRevoked = () =>
   new AppError(403, 'share_revoked', 'This link no longer works')

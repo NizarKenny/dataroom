@@ -10,6 +10,7 @@ config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../../.env')
 const schema = z.object({
   PORT: z.coerce.number().default(8787),
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
+  LOG_LEVEL: z.enum(['silent', 'fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
