@@ -45,7 +45,7 @@ export function FileTable({ rows, onOpen, actions }: Props) {
   // The column carries what was granted on a row itself. When nothing here was,
   // it has nothing to say: readers are sent no access data at all, and a folder
   // whose rows only inherit is already explained by the banner and the rails.
-  const showAccess = rows.some((row) => row.access?.direct)
+  const showAccess = rows.some((row) => row.access && grantedHere(row.access))
 
   return (
     // The columns have a floor below which they crush rather than reflow, so on a
@@ -145,21 +145,24 @@ function RowIcon({ row }: { row: Row }) {
  * by the rail and explained once by the banner over the table, so repeating it
  * here would be the same fact three times.
  */
-function AccessChips({ access }: { access: AccessBadge }) {
-  if (!access.direct) return null
+const grantedHere = (access: AccessBadge) => access.here.people > 0 || access.here.link
 
+function AccessChips({ access }: { access: AccessBadge }) {
+  if (!grantedHere(access)) return null
+
+  const { people, link } = access.here
   return (
     <span className="flex items-center gap-1.5">
-      {access.link && (
+      {link && (
         <Chip className="bg-primary-wash text-primary-active">
           <Dot />
           Link
         </Chip>
       )}
-      {access.people > 0 && (
+      {people > 0 && (
         <Chip className="bg-secondary-wash text-secondary">
           <Dot />
-          {access.people} {access.people === 1 ? 'person' : 'people'}
+          {people} {people === 1 ? 'person' : 'people'}
         </Chip>
       )}
     </span>

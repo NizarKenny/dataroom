@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  badgeFor,
   granteesOf,
   isInherited,
   lookupKeys,
@@ -171,5 +172,50 @@ describe('granteesOf', () => {
   it('treats a claimed invitation as the account that claimed it', () => {
     expect(granteesOf([invite('a', null, 'ana@example.com')])).toBe(1)
     expect(granteesOf([invite('a', 'user-1', 'ana@example.com')])).toBe(1)
+  })
+})
+
+describe('badgeFor', () => {
+  const invited = (path: string, email: string): LiveShare => ({
+    id: `invite-${path}-${email}`,
+    resourceType: 'folder',
+    resourceId: path.split('/').filter(Boolean).at(-1)!,
+    resourcePath: path,
+    mode: 'user',
+    granteeUserId: null,
+    granteeEmail: email,
+  })
+
+  it('says nothing about a row nothing reaches', () => {
+    expect(badgeFor(q4, [folderShare(legalPath)])).toEqual({
+      people: 0,
+      link: false,
+      here: { people: 0, link: false },
+      inherited: false,
+      grantedAt: null,
+    })
+  })
+
+  // The row's own chip must not repeat what the banner over the table already
+  // says, so what was granted here is counted apart from what reaches here.
+  it('separates what was granted on the row from what reaches it', () => {
+    const badge = badgeFor(q4, [invited(financialsPath, 'ana@example.com'), invited(q4Path, 'bo@example.com')])
+
+    expect(badge.people).toBe(2)
+    expect(badge.here.people).toBe(1)
+    expect(badge.inherited).toBe(true)
+  })
+
+  it('names the closest folder access comes from, and only when it comes from above', () => {
+    expect(badgeFor(q4, [folderShare(rootPath, 'data_room'), folderShare(financialsPath)]).grantedAt).toBe(
+      FINANCIALS,
+    )
+    expect(badgeFor(q4, [folderShare(q4Path)]).grantedAt).toBeNull()
+  })
+
+  it('counts a link granted here apart from one reaching in from above', () => {
+    expect(badgeFor(q4, [folderShare(q4Path)]).here.link).toBe(true)
+    expect(badgeFor(q4, [folderShare(financialsPath)]).here.link).toBe(false)
+    expect(badgeFor(q4, [folderShare(financialsPath)]).link).toBe(true)
   })
 })

@@ -2,8 +2,6 @@ import type { DataRoom, File, Folder, Share } from '@prisma/client'
 import { prisma } from './db.js'
 import { notFound, readOnly, shareRevoked } from './errors.js'
 import {
-  granteesOf,
-  isInherited,
   lookupKeys,
   pickGrantingShare,
   shareCovers,
@@ -171,34 +169,4 @@ export async function sharesInSubtree(dataRoomId: string, path: string): Promise
 
   const insideIds = new Set(inside.map((file) => file.id))
   return [...belowPath, ...fileShares.filter((share) => insideIds.has(share.resourceId))]
-}
-
-/**
- * What the listing draws next to a row. Only ever built for the owner: a reader
- * who was let into one folder has no business knowing who else was let in.
- */
-export interface AccessBadge {
-  /** Accounts and pending invitations that reach this row. */
-  people: number
-  /** A public link reaches this row. */
-  link: boolean
-  /** Something was shared on this row itself. */
-  direct: boolean
-  /** Something was shared above it, which is what the rail in the table draws. */
-  inherited: boolean
-  /** Id of the closest node access comes from, for the tooltip. */
-  grantedAt: string | null
-}
-
-export function badgeFor(target: Target, shares: LiveShare[]): AccessBadge {
-  const covering = shares.filter((share) => shareCovers(share, target))
-  const closest = pickGrantingShare(target, covering)
-
-  return {
-    people: granteesOf(covering),
-    link: covering.some((share) => share.mode === 'public_link'),
-    direct: covering.some((share) => !isInherited(target, share)),
-    inherited: covering.some((share) => isInherited(target, share)),
-    grantedAt: closest && isInherited(target, closest) ? closest.resourceId : null,
-  }
 }

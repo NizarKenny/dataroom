@@ -38,12 +38,31 @@ export function lookupKeys(target: Target): { paths: string[]; fileId: string | 
   }
 }
 
-export function shareCovers(share: LiveShare, target: Target): boolean {
+/**
+ * The same keys, shaped for asking the question many times over. A folder listing
+ * checks every share in the room against every row, so the keys for a row are
+ * built once and the membership test is a hash lookup rather than a scan.
+ */
+export interface TargetKeys {
+  paths: Set<string>
+  fileId: string | null
+}
+
+export function keysFor(target: Target): TargetKeys {
+  const keys = lookupKeys(target)
+  return { paths: new Set(keys.paths), fileId: keys.fileId }
+}
+
+export function covers(keys: TargetKeys, share: LiveShare): boolean {
   if (share.resourceType === 'file') {
-    return target.kind === 'file' && share.resourceId === target.id
+    return keys.fileId !== null && share.resourceId === keys.fileId
   }
-  if (share.resourcePath === null) return false
-  return lookupKeys(target).paths.includes(share.resourcePath)
+  return share.resourcePath !== null && keys.paths.has(share.resourcePath)
+}
+
+/** One target against one share. For a whole listing, use keysFor and covers. */
+export function shareCovers(share: LiveShare, target: Target): boolean {
+  return covers(keysFor(target), share)
 }
 
 /**
@@ -55,7 +74,12 @@ export function shareCovers(share: LiveShare, target: Target): boolean {
  * share has no path at all, hence the special case.
  */
 export function pickGrantingShare(target: Target, shares: LiveShare[]): LiveShare | null {
-  const covering = shares.filter((share) => shareCovers(share, target))
+  const keys = keysFor(target)
+  return closestOf(shares.filter((share) => covers(keys, share)))
+}
+
+/** The same choice, when the caller has already worked out what covers the target. */
+export function closestOf(covering: LiveShare[]): LiveShare | null {
   if (covering.length === 0) return null
 
   const direct = covering.find((share) => share.resourceType === 'file')
@@ -88,4 +112,42 @@ export function granteesOf(shares: LiveShare[]): number {
 export function isInherited(target: Target, share: LiveShare): boolean {
   if (share.resourceType === 'file') return false
   return share.resourcePath !== pathOf(target) || target.kind === 'file'
+}
+
+/**
+ * What a listing draws next to a row. Only ever built for the owner: a reader who
+ * was let into one folder has no business knowing who else was let in.
+ */
+export interface AccessBadge {
+  /** Everyone this node is visible to, counted once each, however it arrived. */
+  people: number
+  /** A link reaches this node, from here or from above. */
+  link: boolean
+  /** What was granted on this node itself, which is what a row's chip says. */
+  here: { people: number; link: boolean }
+  /** Something above it also reaches it, which is what the rail draws. */
+  inherited: boolean
+  /** The closest node above that access comes from, for naming it. */
+  grantedAt: string | null
+}
+
+export function badgeFor(target: Target, shares: LiveShare[]): AccessBadge {
+  // The keys are built once and every share is tested against them by hash. A
+  // listing runs this per row, so doing it the other way round makes the cost of
+  // drawing a folder the product of its rows and the room's shares.
+  const keys = keysFor(target)
+  const covering = shares.filter((share) => covers(keys, share))
+  const here = covering.filter((share) => !isInherited(target, share))
+  const closest = closestOf(covering)
+
+  return {
+    people: granteesOf(covering),
+    link: covering.some((share) => share.mode === 'public_link'),
+    here: {
+      people: granteesOf(here),
+      link: here.some((share) => share.mode === 'public_link'),
+    },
+    inherited: covering.length > here.length,
+    grantedAt: closest && isInherited(target, closest) ? closest.resourceId : null,
+  }
 }

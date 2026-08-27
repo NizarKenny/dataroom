@@ -1,9 +1,8 @@
 import type { File, Folder } from '@prisma/client'
-import type { LiveShare } from './domain/access.js'
+import { badgeFor, type LiveShare } from './domain/access.js'
 import { prisma } from './db.js'
 import { segments } from './domain/path.js'
 import {
-  badgeFor,
   fileTarget,
   folderTarget,
   liveSharesIn,
