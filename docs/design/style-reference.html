@@ -13,7 +13,7 @@
   --surface-sunken: #efedeb;
   --hairline: #e6e6e6;
   --hairline-strong: #d4d2cf;
-  --ink: #000000;
+  --ink: #191817;
   --ink-secondary: #31302e;
   --ink-muted: #615d59;
   --ink-faint: #a39e98;
@@ -178,9 +178,9 @@ table { width: 100%; border-collapse: collapse; }
 thead th {
   text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .125px;
   text-transform: uppercase; color: var(--ink-faint);
-  padding: 8px var(--s-md); border-bottom: 1px solid var(--hairline); background: var(--surface);
+  padding: 10px var(--s-md); border-bottom: 1px solid var(--hairline); background: var(--surface);
 }
-tbody td { padding: 9px var(--s-md); border-bottom: 1px solid var(--hairline); font-size: 15px; vertical-align: middle; }
+tbody td { padding: 13px var(--s-md); border-bottom: 1px solid var(--hairline); font-size: 15px; vertical-align: middle; }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr.is-hover td { background: var(--surface-sunken); }
 .cell-name { display: flex; align-items: center; gap: 10px; }
@@ -281,7 +281,7 @@ tr.inherited td:first-child::before {
       <div class="sw"><div class="chip" style="background:#efedeb"></div><div class="meta"><div class="name new">surface-sunken</div><div class="hex">#efedeb</div></div></div>
       <div class="sw"><div class="chip" style="background:#e6e6e6"></div><div class="meta"><div class="name">hairline</div><div class="hex">#e6e6e6</div></div></div>
       <div class="sw"><div class="chip" style="background:#d4d2cf"></div><div class="meta"><div class="name new">hairline-strong</div><div class="hex">#d4d2cf</div></div></div>
-      <div class="sw"><div class="chip" style="background:#000000"></div><div class="meta"><div class="name">ink</div><div class="hex">#000000</div></div></div>
+      <div class="sw"><div class="chip" style="background:#191817"></div><div class="meta"><div class="name new">ink</div><div class="hex">#191817</div></div></div>
       <div class="sw"><div class="chip" style="background:#31302e"></div><div class="meta"><div class="name">ink-secondary</div><div class="hex">#31302e</div></div></div>
       <div class="sw"><div class="chip" style="background:#615d59"></div><div class="meta"><div class="name">ink-muted</div><div class="hex">#615d59</div></div></div>
       <div class="sw"><div class="chip" style="background:#a39e98"></div><div class="meta"><div class="name">ink-faint</div><div class="hex">#a39e98</div></div></div>
@@ -424,11 +424,12 @@ tr.inherited td:first-child::before {
       </table>
     </div>
     <p class="note"><strong>The rail is the signature.</strong> A row whose access came from a folder
-      above it carries a two-pixel rule in the colour of that share, and the same rule runs up the
-      breadcrumb to the ancestor that granted it. Nothing else on the page uses a coloured edge, so
-      the eye reads inheritance without a legend. Rows granted directly have no rail: the difference
-      between "shared" and "shared from above" is the question a data room actually gets asked, and
-      it is the same distinction the access check makes in SQL.</p>
+      above it carries a two-pixel rule, and the same rule runs up the breadcrumb to the ancestor
+      that granted it. The rail answers one question only, "was this granted here or higher up";
+      which kind of share it is belongs to the chip. Nothing else on the page uses a coloured edge,
+      so the eye reads inheritance without a legend. The difference between "shared" and "shared
+      from above" is the question a data room actually gets asked, and it is the same distinction
+      the access check makes in SQL.</p>
   </section>
 
   <section>
