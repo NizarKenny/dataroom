@@ -1,3 +1,6 @@
+import { d } from './dictionary'
+import { current, say, type Locale } from './i18n'
+
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
 
 export function formatBytes(bytes: number): string {
@@ -14,16 +17,28 @@ export function formatBytes(bytes: number): string {
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${UNITS[unit]}`
 }
 
-const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
-const sameYear = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short' })
-const otherYear = new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' })
+/**
+ * Dates follow the language the interface is speaking, and Intl already knows
+ * both. Built on demand rather than once at import: the locale can change while
+ * the page is open, and a formatter made before it changed would keep saying
+ * "22 minutes ago" under a Ukrainian heading.
+ */
+const formatters = (locale: Locale) => {
+  const tag = locale === 'ua' ? 'uk' : 'en'
+  return {
+    relative: new Intl.RelativeTimeFormat(tag, { numeric: 'auto' }),
+    sameYear: new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'short' }),
+    otherYear: new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'short', year: 'numeric' }),
+  }
+}
 
 /** Recent things get a relative time, older things get a date. */
 export function formatWhen(iso: string): string {
   const then = new Date(iso)
   const minutes = Math.round((then.getTime() - Date.now()) / 60_000)
+  const { relative, sameYear, otherYear } = formatters(current())
 
-  if (minutes > -1) return 'just now'
+  if (minutes > -1) return say(d.common.justNow)
   if (minutes > -60) return relative.format(minutes, 'minute')
   if (minutes > -60 * 24) return relative.format(Math.round(minutes / 60), 'hour')
   if (minutes > -60 * 24 * 7) return relative.format(Math.round(minutes / (60 * 24)), 'day')

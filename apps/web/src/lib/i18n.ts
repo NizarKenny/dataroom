@@ -53,6 +53,9 @@ export function useLocale() {
  */
 export const say = (phrase: Phrase) => phrase[locale]
 
+/** The locale as it stands, for the same two places. */
+export const current = () => locale
+
 /** `const t = useT()`, then `t(d.browser.newFolder)`. */
 export function useT() {
   const { locale: current } = useLocale()

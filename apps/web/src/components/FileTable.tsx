@@ -88,12 +88,12 @@ export function FileTable({ rows, onOpen, actions }: Props) {
                 }}
                 onDragLeave={() => setOver((current) => (current === id ? null : current))}
                 onDrop={() => drop(id)}
-                // Every optional column hangs off the right edge, header and
-                // content together. Mixing a left aligned label with right
-                // aligned ones leaves gaps between the words that have nothing
-                // to do with the gaps between the columns.
+                // Label and values share one axis down the middle of the
+                // column. Ranged left or right they hang off an edge instead,
+                // and a column of "just now" over "22 minutes ago" then drifts
+                // by the difference between them on every row.
                 className={cn(
-                  'cursor-grab text-right select-none',
+                  'min-w-[104px] cursor-grab text-center select-none',
                   dragging === id && 'opacity-45',
                   over === id && dragging !== id && 'bg-primary-wash text-primary-active',
                 )}
@@ -137,13 +137,13 @@ export function FileTable({ rows, onOpen, actions }: Props) {
 
               {shown.map((id) =>
                 id === 'access' ? (
-                  <td key={id} className="px-4 py-[13px] text-right whitespace-nowrap">
+                  <td key={id} className="px-4 py-[13px] text-center whitespace-nowrap">
                     {row.access && <AccessChips access={row.access} />}
                   </td>
                 ) : (
                   <td
                     key={id}
-                    className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted"
+                    className="tabular px-4 py-[13px] text-center text-[13px] whitespace-nowrap text-ink-muted"
                   >
                     {id === 'size'
                       ? row.kind === 'file'
@@ -217,7 +217,7 @@ function AccessChips({ access }: { access: AccessBadge }) {
 
   const { people, link } = access.here
   return (
-    <span className="flex items-center justify-end gap-1.5">
+    <span className="flex items-center justify-center gap-1.5">
       {link && (
         <Chip className="bg-primary-wash text-primary-active">
           <Dot />

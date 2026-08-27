@@ -29,6 +29,7 @@ export const d = {
     signOut: p('Sign out', 'Вийти'),
     oneMoment: p('One moment', 'Хвилинку'),
     reload: p('Reload', 'Перезавантажити'),
+    justNow: p('just now', 'щойно'),
     couldNotDraw: p(
       'The page could not be drawn. Reloading usually clears it.',
       'Сторінку не вдалося намалювати. Перезавантаження зазвичай допомагає.',
