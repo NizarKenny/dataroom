@@ -52,7 +52,7 @@ npm install
 
 cp .env.example .env      # fill in from the Supabase dashboard
 
-npm run migrate --workspace @dataroom/api    # applies the one migration
+npm run migrate --workspace @dataroom/api    # applies the migrations
 npm run seed --workspace @dataroom/api       # demo room, two accounts, sample documents
 npm run dev                                  # api on :8787, web on :5173
 ```
@@ -67,12 +67,12 @@ Checks:
 
 ```bash
 npm run typecheck --workspaces      # api and web
-npm run test --workspaces --if-present   # 46 unit tests over the path and access rules
+npm run test --workspaces --if-present   # 49 unit tests over the path, access and name rules
 npm run smoke --workspace @dataroom/api   # end to end against the real database and bucket
 ```
 
 `smoke` creates two throwaway accounts, walks the whole API including a real
-upload and download, asserts 48 things and deletes what it made. It needs a
+upload and download, asserts 69 things and deletes what it made. It needs a
 filled in `.env`, so CI runs the unit tests only.
 
 ## The data model

@@ -11,9 +11,9 @@
     "test": "vitest run",
     "smoke": "tsx scripts/smoke.ts",
     "seed": "tsx scripts/seed.ts",
-    "migrate": "prisma migrate deploy",
-    "generate": "prisma generate",
-    "migrate:dev": "prisma migrate dev"
+    "migrate": "node scripts/prisma.mjs migrate deploy",
+    "generate": "node scripts/prisma.mjs generate",
+    "migrate:dev": "node scripts/prisma.mjs migrate dev"
   },
   "dependencies": {
     "@fastify/cors": "^11.1.0",
