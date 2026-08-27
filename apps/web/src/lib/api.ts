@@ -42,6 +42,13 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
   const payload = await response.json().catch(() => null)
 
   if (!response.ok) {
+    // The client refreshes tokens on its own, so a 401 from the API means the
+    // session is genuinely gone. Dropping it here sends the app back to the sign
+    // in screen instead of leaving every panel showing a load error.
+    if (response.status === 401 && options.signed !== false) {
+      await supabase.auth.signOut()
+    }
+
     throw new ApiError(
       response.status,
       payload?.error ?? 'unknown',

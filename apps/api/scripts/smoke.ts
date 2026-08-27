@@ -206,6 +206,21 @@ async function main() {
   const linkInLegal = await anonymous('GET', `/links/${token}/folders/${legal.body.id}`)
   check('the link reaches nothing else', linkInLegal.status === 404, linkInLegal.body)
 
+  const fileLink = await asOwner('POST', '/shares', {
+    resourceType: 'file',
+    resourceId: recorded.body.id,
+    mode: 'public_link',
+  })
+  const openedFile = await anonymous('GET', `/links/${fileLink.body.token}`)
+  check('a link to one file opens on that file', openedFile.body?.kind === 'file', openedFile.body)
+  check('and names it', openedFile.body?.file?.name === 'cap-table.csv', openedFile.body?.file)
+
+  const fileLinkFolder = await anonymous(
+    'GET',
+    `/links/${fileLink.body.token}/folders/${q4.body.id}`,
+  )
+  check('a link to one file does not open its folder', fileLinkFolder.status === 404)
+
   console.log('\nmoving a subtree')
   const move = await asOwner('PATCH', `/folders/${q4.body.id}`, { parentId: legal.body.id })
   check('the folder moves', move.status === 200, move.body)
@@ -235,7 +250,9 @@ async function main() {
   console.log('\nmanifest and delete')
   const manifest = await asOwner('GET', `/folders/${legal.body.id}/manifest`)
   check('the manifest counts the subtree', manifest.body?.folders === 1 && manifest.body?.files === 1, manifest.body)
-  check('and the shares inside it', manifest.body?.shares === 1, manifest.body)
+  // The folder share on Q4 and the file share on the spreadsheet inside it. A
+  // file share carries no path, so counting it means resolving it through its file.
+  check('and the shares inside it, including one on a file', manifest.body?.shares === 2, manifest.body)
 
   const root = await asOwner('DELETE', `/folders/${rootId}`)
   check('the top folder cannot be deleted on its own', root.status === 400, root.body)

@@ -1,4 +1,5 @@
 import cors from '@fastify/cors'
+import { Prisma } from '@prisma/client'
 import Fastify, { type FastifyInstance } from 'fastify'
 import {
   hasZodFastifySchemaValidationErrors,
@@ -7,7 +8,7 @@ import {
 } from 'fastify-type-provider-zod'
 import { authenticate } from './auth.js'
 import { env } from './env.js'
-import { AppError } from './errors.js'
+import { AppError, notFound } from './errors.js'
 import { fileRoutes } from './routes/files.js'
 import { folderRoutes } from './routes/folders.js'
 import { linkRoutes } from './routes/links.js'
@@ -46,6 +47,18 @@ export async function buildApp(): Promise<FastifyInstance> {
           })),
         },
       })
+    }
+
+    // Two Prisma failures mean the same thing to a caller: the row they named
+    // stopped existing between the check and the write. Anything else from
+    // Prisma is a bug of ours, not theirs.
+    const vanished =
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === 'P2003' || error.code === 'P2025')
+
+    if (vanished) {
+      const gone = notFound()
+      return reply.status(gone.status).send({ error: gone.code, message: gone.message })
     }
 
     // Anything unrecognised is ours to fix, and the caller learns nothing from it.
