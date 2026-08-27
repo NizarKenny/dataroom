@@ -1,20 +1,32 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FilePreview } from '@/components/FilePreview'
 import { PromptDialog } from '@/components/PromptDialog'
 import { TopBar } from '@/components/TopBar'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, type RoomSummary } from '@/lib/api'
 import { formatBytes, formatWhen } from '@/lib/format'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 export function Rooms() {
   const rooms = useQuery({ queryKey: ['rooms'], queryFn: api.rooms.list })
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+
   const [creating, setCreating] = useState(false)
+  const [renaming, setRenaming] = useState<RoomSummary | null>(null)
+  const [deleting, setDeleting] = useState<RoomSummary | null>(null)
   // A reader whose only access is one file has no folder to open, so the room
   // opens straight into the document.
   const [previewing, setPreviewing] = useState<{
@@ -24,12 +36,31 @@ export function Rooms() {
     mimeType: string
   } | null>(null)
 
+  function refresh() {
+    void queryClient.invalidateQueries({ queryKey: ['rooms'] })
+  }
+
   const create = useMutation({
     mutationFn: (name: string) => api.rooms.create(name),
     onSuccess: (room) => {
-      void queryClient.invalidateQueries({ queryKey: ['rooms'] })
+      refresh()
       navigate(`/f/${room.rootFolderId}`)
     },
+  })
+
+  const rename = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.rooms.rename(id, name),
+    onSuccess: refresh,
+  })
+
+  const remove = useMutation({
+    mutationFn: (room: RoomSummary) => api.rooms.remove(room.id),
+    onSuccess: (_result, room) => {
+      refresh()
+      toast.success(`${room.name} deleted`)
+    },
+    onError: (problem) =>
+      toast.error(problem instanceof Error ? problem.message : 'That could not be deleted'),
   })
 
   async function openRoom(room: RoomSummary) {
@@ -38,6 +69,7 @@ export function Rooms() {
       navigate(`/f/${room.entry.id}`)
       return
     }
+
     const link = await api.files.download(room.entry.id)
     setPreviewing({
       id: room.entry.id,
@@ -92,27 +124,61 @@ export function Rooms() {
           )}
 
           {rooms.data?.map((room) => (
-            <button
+            <div
               key={room.id}
-              onClick={() => void openRoom(room)}
-              className="flex w-full items-center gap-4 border-b border-hairline px-4 py-[13px] text-left last:border-b-0 hover:bg-sunken"
+              className="group flex items-center border-b border-hairline last:border-b-0 hover:bg-sunken"
             >
-              <span className="flex-1 truncate">{room.name}</span>
+              <button
+                onClick={() => void openRoom(room)}
+                className="flex min-w-0 flex-1 items-center gap-4 px-4 py-[13px] text-left"
+              >
+                <span className="flex-1 truncate">{room.name}</span>
 
-              {room.role === 'viewer' ? (
-                <span className="rounded-full bg-secondary-wash px-2.5 py-[3px] text-xs font-semibold text-secondary">
-                  Shared with you
-                </span>
-              ) : (
-                <span className="tabular text-[13px] whitespace-nowrap text-ink-muted">
-                  {room.files} {room.files === 1 ? 'file' : 'files'} · {formatBytes(room.bytes ?? 0)}
-                </span>
-              )}
+                {room.role === 'viewer' ? (
+                  <span className="rounded-full bg-secondary-wash px-2.5 py-[3px] text-xs font-semibold text-secondary">
+                    Shared with you
+                  </span>
+                ) : (
+                  <span className="tabular text-[13px] whitespace-nowrap text-ink-muted">
+                    {room.files} {room.files === 1 ? 'file' : 'files'} ·{' '}
+                    {formatBytes(room.bytes ?? 0)}
+                  </span>
+                )}
 
-              <span className="w-24 text-right text-[13px] whitespace-nowrap text-ink-faint">
-                {formatWhen(room.updatedAt)}
-              </span>
-            </button>
+                <span className="w-24 text-right text-[13px] whitespace-nowrap text-ink-faint">
+                  {formatWhen(room.updatedAt)}
+                </span>
+              </button>
+
+              {/* The same width for a reader with no menu, so the rows line up. */}
+              <div className="w-11 pr-3">
+                {room.role === 'owner' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="utility"
+                        size="icon"
+                        className="text-ink-faint opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                        aria-label={`Actions for ${room.name}`}
+                      >
+                        <MoreHorizontal />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem onSelect={() => setRenaming(room)}>
+                        <Pencil />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(room)}>
+                        <Trash2 />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </main>
@@ -132,6 +198,37 @@ export function Rooms() {
         submitLabel="Create"
         onSubmit={async (name) => {
           await create.mutateAsync(name)
+        }}
+      />
+
+      <PromptDialog
+        open={renaming !== null}
+        onOpenChange={(open) => !open && setRenaming(null)}
+        title={`Rename ${renaming?.name ?? ''}`}
+        label="Name"
+        submitLabel="Rename"
+        initialValue={renaming?.name}
+        onSubmit={async (name) => {
+          if (renaming) await rename.mutateAsync({ id: renaming.id, name })
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleting !== null}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title={`Delete ${deleting?.name ?? ''}?`}
+        description="The whole room goes, with every document in it and every link into it. This cannot be undone."
+        manifest={
+          deleting
+            ? [
+                { label: 'Files', value: deleting.files ?? 0 },
+                { label: 'Size', value: formatBytes(deleting.bytes ?? 0) },
+              ]
+            : undefined
+        }
+        confirmLabel="Delete the data room"
+        onConfirm={async () => {
+          if (deleting) await remove.mutateAsync(deleting)
         }}
       />
     </div>

@@ -258,6 +258,9 @@ someone was invited into, because those totals describe parts they cannot see.
 - **Sweeping orphaned objects.** An upload the reader abandons leaves an object
   with no row behind it. In a real deployment a nightly job compares the bucket
   against `files`.
+- **Rate limiting on the link routes.** A token is 32 characters of base64url,
+  so guessing one is not the threat; a link being hammered is, and that is a
+  counter in Redis rather than in a serverless instance's memory.
 - **Storybook, an e2e suite, Docker.** The style reference in
   `docs/design/style-reference.html` is the component gallery, and the smoke
   script covers the paths an e2e suite would.
