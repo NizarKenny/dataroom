@@ -17,11 +17,13 @@ interface Props {
   onOpenChange: (open: boolean) => void
   /** Signed differently for a link holder than for a signed-in reader. */
   getLink: (id: string, disposition: 'inline' | 'attachment') => Promise<DownloadLink>
+  /** Who is asking, so one reader's signed URL is not served to the other. */
+  scope: string
 }
 
-export function FilePreview({ file, onOpenChange, getLink }: Props) {
+export function FilePreview({ file, onOpenChange, getLink, scope }: Props) {
   const link = useQuery({
-    queryKey: ['preview', file?.id],
+    queryKey: ['preview', scope, file?.id],
     queryFn: () => getLink(file!.id, 'inline'),
     enabled: file !== null,
   })
@@ -77,7 +79,7 @@ function Preview({ url, type, name }: { url: string; type: string; name: string 
     )
   }
 
-  if (type.startsWith('text/')) {
+  if (type === 'text/plain' || type === 'text/csv') {
     return <iframe src={url} title={name} className="size-full border-0 bg-surface" />
   }
 

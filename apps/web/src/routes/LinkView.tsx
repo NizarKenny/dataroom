@@ -96,6 +96,7 @@ export function LinkView() {
           file={previewing?.kind === 'file' ? previewing : null}
           onOpenChange={(open) => !open && setPreviewing(null)}
           getLink={(id, disposition) => api.links.download(token, id, disposition)}
+          scope={token}
         />
       </Shell>
     )
@@ -142,12 +143,20 @@ export function LinkView() {
         )}
 
         {view.isPending && <Skeleton className="m-4 h-24" />}
+
+        {view.isError && (
+          <p className="px-6 py-13 text-center text-ink-muted">
+            This folder could not be loaded. The link may have been switched off while you were
+            reading.
+          </p>
+        )}
       </div>
 
       <FilePreview
         file={previewing?.kind === 'file' ? previewing : null}
         onOpenChange={(open) => !open && setPreviewing(null)}
         getLink={(id, disposition) => api.links.download(token, id, disposition)}
+        scope={token}
       />
     </Shell>
   )

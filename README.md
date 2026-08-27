@@ -60,12 +60,12 @@ Checks:
 
 ```bash
 npm run typecheck --workspaces      # api and web
-npm run test --workspaces           # 42 unit tests over the path and access rules
+npm run test --workspaces           # 46 unit tests over the path and access rules
 npm run smoke --workspace @dataroom/api   # end to end against the real database and bucket
 ```
 
 `smoke` creates two throwaway accounts, walks the whole API including a real
-upload and download, asserts 47 things and deletes what it made. It needs a
+upload and download, asserts 48 things and deletes what it made. It needs a
 filled in `.env`, so CI runs the unit tests only.
 
 ## The data model
@@ -125,9 +125,13 @@ is then an equality lookup rather than a walk.
 ## How access is resolved
 
 `domain/access.ts` holds the rules and knows nothing about the database.
-`permissions.ts` runs them against it. Every route goes through the same
-function, and the public link routes go through it too, so a link holder and an
-invited reader cannot drift apart.
+`permissions.ts` runs them against it. Every route that reaches a node goes
+through the same function, and the public link routes go through it too, so a
+link holder and an invited reader cannot drift apart.
+
+Two routes answer a different question and so do not use it. `GET /rooms` asks
+which rooms exist for this person rather than whether one node is reachable, and
+`DELETE /shares/:id` only has to know who owns the room the share belongs to.
 
 For a target node, `lookupKeys` returns the keys a share would have to carry to
 reach it: the path of every folder above it, its own path, and for a file its
@@ -186,8 +190,12 @@ the move. Miss it and readers silently lose access; the smoke test covers it.
 
 The listing annotates rows by loading the room's live shares once and evaluating
 the same rules in memory. A room holds tens of shares, not thousands, so this is
-one query rather than one per row. If that stopped being true, the same answer
-comes from a `resource_path in (...)` over the listed rows.
+one query rather than one per row. The keys for a row are built once and each
+share is tested against them by hash lookup; building them per share instead
+makes drawing a folder cost rows multiplied by shares, which is a slow listing
+long before the queries are the problem. If a room ever did hold thousands of
+shares, the same answer comes from a `resource_path in (...)` over the listed
+rows.
 
 **Large files, several at once.** The browser asks the API for a signed URL and
 uploads straight to storage. Bytes never pass through a function, so no request
@@ -197,10 +205,17 @@ run at a time.
 Rejected: multipart through the API. A serverless function caps the body at a few
 megabytes and holds the whole file in memory while it proxies it.
 
-Size and type are read back from storage rather than trusted from the request, so
-the row describes what is actually there. The limit is checked when the upload is
-asked for, again against what storage reports, and a third time by the bucket,
-which is the one a client cannot argue with.
+Size is read back from storage rather than trusted from the request, so the row
+describes what is actually there. The limit is checked when the upload is asked
+for, again against what storage reports, and a third time by the bucket, which is
+the one a client cannot argue with.
+
+The content type is not authoritative in the same way: it is whatever the
+uploader's browser put on the object, and it round trips through storage looking
+like a fact. So the download signer decides rather than the type: a short list of
+formats is served inline, and everything else is handed over as a download
+however it was asked for. An HTML file rendered inline would be a page running on
+the storage host.
 
 Not built: resumable uploads. Supabase Storage speaks TUS; the queue here retries
 a whole file instead.
@@ -233,9 +248,12 @@ available on Supabase, so the application generates them.
 folder with that id exists, which is exactly what a shared out data room must not
 leak.
 
-**Shares are revoked, not deleted.** Someone holding a dead link is told it was
-switched off instead of walking into a blank 404, and the partial indexes stop
-considering the row either way.
+**Shares are revoked, not deleted.** Someone holding a link into a deleted folder
+or file is told it was switched off instead of walking into a blank 404, and the
+partial indexes stop considering the row either way. Deleting a whole data room
+is the exception: the shares go with it, because there is no longer a room for a
+revoked row to belong to, and a link into it answers 404. The smoke test asserts
+both halves of that.
 
 **A reader is not told who else has access.** The access column and the people
 count are built for the owner only, and the room list hides totals for a room
@@ -254,6 +272,13 @@ someone was invited into, because those totals describe parts they cannot see.
   a second key.
 - **An audit trail of who opened what.** Shares are already append plus revoke,
   which is the same shape.
+- **Proving that an invited address belongs to whoever signs in with it.** An
+  invitation is claimed on first sign-in by matching the email on the account,
+  and email confirmation is deliberately off so the demo needs no mailbox.
+  Together those mean somebody who knows an invited address could sign up as it.
+  The answer is not a stricter check on the token, whose `email_verified` claim
+  the account itself can write: the invitation has to carry its own secret, and
+  the link in the email is what claims it.
 - **Sweeping orphaned objects.** An upload the reader abandons leaves an object
   with no row behind it. In a real deployment a nightly job compares the bucket
   against `files`.
@@ -264,12 +289,15 @@ someone was invited into, because those totals describe parts they cannot see.
   `docs/design/style-reference.html` is the component gallery, and the smoke
   script covers the paths an e2e suite would.
 
-Two things a reviewer will notice:
+Things a reviewer will notice:
 
-- `npm audit` reports a high severity advisory in `deepmerge-ts`, reached only
-  through `@prisma/config`, which is a dependency of the `prisma` CLI in
-  `devDependencies`. It is not in the runtime tree. `npm audit fix --force`
-  downgrades Prisma across a major version, so it stays.
+- `npm audit` reports a high severity advisory in `deepmerge-ts`, reached through
+  `prisma` and `@prisma/config`. It survives `npm audit --omit=dev`, because
+  `@prisma/client` declares `prisma` as a peer dependency and npm installs peers,
+  so the CLI is in a production install too. The vulnerable code is only loaded
+  when that CLI runs, which the server never does, and `npm audit fix --force`
+  downgrades Prisma across a major version. So it stays, and it stays written
+  down here rather than in a comment nobody reads.
 - Email confirmation is off in Supabase Auth, deliberately, so that the demo
   accounts and any account a reviewer creates work immediately.
 - The root `package.json` carries one optional dependency,
@@ -290,6 +318,10 @@ trade-off written down above.
 What it did well: most of the typing, the sample document generator, the seed,
 and the first pass at the tests.
 
-What it got wrong and I caught: a test that asserted a fact about JavaScript
-rather than about my code, whole room totals shown to someone invited into one
-folder, and readers landing on a root folder they are not allowed to open.
+What it got wrong, and what a review pass caught before this shipped: a test that
+asserted a fact about JavaScript rather than about my code, whole room totals
+shown to someone invited into one folder, readers landing on a root folder they
+are not allowed to open, a query cache that survived signing out and would have
+handed the next person at the browser the previous one's file names, and an
+upload queue that kept working after you walked to another folder and filed the
+file wherever you had ended up.

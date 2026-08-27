@@ -187,6 +187,7 @@ export function Rooms() {
         file={previewing}
         onOpenChange={(open) => !open && setPreviewing(null)}
         getLink={(id, disposition) => api.files.download(id, disposition)}
+        scope="account"
       />
 
       <PromptDialog
