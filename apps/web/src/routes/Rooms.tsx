@@ -86,7 +86,7 @@ export function Rooms() {
       <main className="mx-auto max-w-[1180px] px-6 py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[28px] leading-tight font-bold tracking-[-0.02em]">Data rooms</h1>
+            <h1 className="text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">Data rooms</h1>
             <p className="mt-1 text-ink-muted">Rooms you own, and rooms shared with you.</p>
           </div>
           <Button variant="primary" onClick={() => setCreating(true)}>

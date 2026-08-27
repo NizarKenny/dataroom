@@ -147,7 +147,9 @@
     margin: 0;
   }
 
-  /* One focus treatment everywhere, rather than each control inventing its own. */
+  /* One focus treatment everywhere, rather than each control inventing its own.
+     A field draws the same outline inside its edge instead of outside it, which
+     is the only thing any control is allowed to change. */
   :focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;

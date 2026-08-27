@@ -152,7 +152,7 @@ export function Browser() {
         }
       >
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <h1 className="flex-1 truncate text-[22px] font-semibold tracking-[-0.02em]">
+          <h1 className="min-w-0 flex-1 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
             {folder.name}
           </h1>
 

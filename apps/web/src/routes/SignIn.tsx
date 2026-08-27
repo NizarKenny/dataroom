@@ -35,7 +35,7 @@ export function SignIn() {
   return (
     <div className="grid min-h-dvh place-items-center bg-canvas px-6">
       <div className="w-full max-w-[360px]">
-        <h1 className="text-[32px] leading-tight font-bold tracking-[-0.02em]">Data Room</h1>
+        <h1 className="text-[40px] leading-[1.1] font-bold tracking-[-1px]">Data Room</h1>
         <p className="mt-2 text-ink-muted">
           {mode === 'in'
             ? 'Sign in to reach the rooms shared with you.'

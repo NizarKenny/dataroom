@@ -144,11 +144,16 @@ function RowIcon({ row }: { row: Row }) {
  * Only what was granted on this row itself. Access that came from above is drawn
  * by the rail and explained once by the banner over the table, so repeating it
  * here would be the same fact three times.
+ *
+ * A row nothing reaches says so. A column of blanks reads as one that failed to
+ * load, rather than as a room where most things are private.
  */
 const grantedHere = (access: AccessBadge) => access.here.people > 0 || access.here.link
 
 function AccessChips({ access }: { access: AccessBadge }) {
-  if (!grantedHere(access)) return null
+  if (!grantedHere(access)) {
+    return access.inherited ? null : <Chip className="bg-sunken text-ink-muted">Private</Chip>
+  }
 
   const { people, link } = access.here
   return (

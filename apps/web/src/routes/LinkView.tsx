@@ -75,7 +75,7 @@ export function LinkView() {
     return (
       <Shell room={link.room.name}>
         <div className="rounded-lg border border-hairline bg-surface p-6">
-          <h1 className="truncate text-[22px] font-semibold tracking-[-0.02em]">{file.name}</h1>
+          <h1 className="truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">{file.name}</h1>
           <p className="mt-1 text-[13px] text-ink-muted">
             {formatBytes(file.sizeBytes)} · {file.mimeType}
           </p>
@@ -113,7 +113,7 @@ export function LinkView() {
   return (
     <Shell room={link.room.name}>
       {view.data && (
-        <h1 className="mb-4 truncate text-[22px] font-semibold tracking-[-0.02em]">
+        <h1 className="mb-4 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
           {view.data.folder.name}
         </h1>
       )}

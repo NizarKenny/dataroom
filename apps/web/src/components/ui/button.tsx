@@ -13,16 +13,17 @@ const button = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-on-primary hover:bg-primary-active',
-        secondary: 'bg-surface text-ink border border-hairline-strong hover:bg-sunken',
-        utility: 'bg-transparent text-ink-secondary hover:bg-sunken',
+        primary: 'rounded-full bg-primary text-on-primary hover:bg-primary-active',
+        secondary:
+          'rounded-full bg-surface text-ink border border-hairline-strong hover:bg-sunken',
+        utility: 'rounded-md bg-transparent text-ink-secondary hover:bg-sunken',
         danger:
-          'bg-transparent text-danger border border-hairline-strong hover:bg-danger-wash hover:border-danger',
+          'rounded-full bg-transparent text-danger border border-hairline-strong hover:bg-danger-wash hover:border-danger',
       },
       size: {
-        md: 'rounded-full px-4 py-[7px] text-[15px] leading-normal',
-        sm: 'rounded-md px-3 py-1 text-sm',
-        icon: 'rounded-md size-8',
+        md: 'px-4 py-[7px] text-[15px] leading-normal',
+        sm: 'px-3 py-1 text-sm',
+        icon: 'size-8 rounded-md',
       },
     },
     defaultVariants: { variant: 'secondary', size: 'md' },

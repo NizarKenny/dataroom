@@ -90,7 +90,12 @@ export function UploadPanel({ queue }: { queue: UploadQueue }) {
 
 function Choice({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
-    <Button variant="secondary" size="sm" onClick={onClick} className="text-[13px]">
+    <Button
+      variant="utility"
+      size="sm"
+      onClick={onClick}
+      className="border border-hairline-strong text-[13px]"
+    >
       {children}
     </Button>
   )
