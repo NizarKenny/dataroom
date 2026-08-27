@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data Room — style reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --canvas: #f6f5f4;
+  --surface: #ffffff;
+  --surface-sunken: #efedeb;
+  --hairline: #e6e6e6;
+  --hairline-strong: #d4d2cf;
+  --ink: #000000;
+  --ink-secondary: #31302e;
+  --ink-muted: #615d59;
+  --ink-faint: #a39e98;
+  --primary: #0075de;
+  --primary-active: #005bab;
+  --primary-wash: #eaf4fd;
+  --secondary: #213183;
+  --secondary-wash: #eceef7;
+  --on-primary: #ffffff;
+  --danger: #c0392b;
+  --danger-wash: #fdeeec;
+  --success: #15803d;
+  --warning: #b45309;
+
+  --r-xs: 4px; --r-sm: 5px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-full: 9999px;
+  --s-xxs: 4px; --s-xs: 8px; --s-sm: 12px; --s-md: 16px; --s-lg: 24px; --s-xl: 28px; --s-xxl: 32px;
+
+  --shadow-soft:
+    0 0.175px 1.04px rgba(0,0,0,.01),
+    0 .8px 2.9px rgba(0,0,0,.02),
+    0 2px 7.8px rgba(0,0,0,.027),
+    0 4px 18px rgba(0,0,0,.04);
+
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.dark {
+  --canvas: #191919;
+  --surface: #262626;
+  --surface-sunken: #212121;
+  --hairline: #343434;
+  --hairline-strong: #454545;
+  --ink: #ededed;
+  --ink-secondary: #cfcdca;
+  --ink-muted: #9a958f;
+  --ink-faint: #6f6a64;
+  --primary: #2f8fef;
+  --primary-active: #1f7ad6;
+  --primary-wash: #16293c;
+  --secondary: #8aa0ff;
+  --secondary-wash: #23273d;
+  --danger: #f87171;
+  --danger-wash: #3a2020;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --shadow-soft:
+    0 .8px 2.9px rgba(0,0,0,.18),
+    0 2px 7.8px rgba(0,0,0,.22),
+    0 4px 18px rgba(0,0,0,.28);
+}
+
+* { box-sizing: border-box; border-color: var(--hairline); }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-feature-settings: "lnum" 1, "locl" 1;
+  -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.33;
+}
+h1, h2, h3 { letter-spacing: -.02em; margin: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.page { max-width: 1180px; margin: 0 auto; padding: 56px 40px 88px; }
+.masthead { border-bottom: 1px solid var(--hairline-strong); padding-bottom: var(--s-lg); margin-bottom: var(--s-xxl); }
+.masthead h1 { font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -1px; }
+.masthead p { margin: var(--s-sm) 0 0; color: var(--ink-muted); font-size: 16px; line-height: 1.5; max-width: 62ch; }
+
+.eyebrow {
+  font-size: 12px; font-weight: 600; letter-spacing: .125px;
+  text-transform: uppercase; color: var(--ink-faint);
+  display: flex; align-items: center; gap: var(--s-sm);
+  margin: 0 0 var(--s-md);
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+
+section { margin-bottom: 52px; }
+.note { color: var(--ink-muted); font-size: 13px; line-height: 1.43; margin: var(--s-sm) 0 0; max-width: 72ch; }
+.new { color: var(--primary); font-weight: 500; }
+
+/* ── colour ─────────────────────────────────────────────── */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: var(--s-sm); }
+.sw { border: 1px solid var(--hairline); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+.sw .chip { height: 46px; }
+.sw .meta { padding: var(--s-xs) 10px 10px; }
+.sw .name { font-size: 12px; font-weight: 500; }
+.sw .hex { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+
+/* ── type ───────────────────────────────────────────────── */
+.type-row { display: grid; grid-template-columns: 132px 1fr; gap: var(--s-lg); align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--hairline); }
+.type-row:last-child { border-bottom: 0; }
+.type-key { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+
+/* ── buttons ────────────────────────────────────────────── */
+.btn {
+  font-family: inherit; font-size: 15px; font-weight: 500; line-height: 1.5;
+  border-radius: var(--r-full); border: 1px solid transparent;
+  padding: 7px 16px; cursor: pointer; transition: background-color .12s ease, border-color .12s ease;
+  display: inline-flex; align-items: center; gap: var(--s-xs);
+}
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-primary.is-active { background: var(--primary-active); }
+.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--hairline-strong); }
+.btn-secondary.is-active { background: var(--surface-sunken); }
+.btn-utility { background: transparent; color: var(--ink-secondary); border-radius: var(--r-md); padding: 4px 12px; }
+.btn-utility.is-active { background: var(--surface-sunken); }
+.btn-danger { background: transparent; color: var(--danger); border-color: var(--hairline-strong); }
+.btn-danger.is-active { background: var(--danger-wash); border-color: var(--danger); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn-row { display: flex; flex-wrap: wrap; gap: var(--s-sm); align-items: center; }
+.state-label { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); width: 68px; flex: none; }
+
+.spinner { width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; display: inline-block; }
+
+/* ── fields ─────────────────────────────────────────────── */
+.field { max-width: 320px; }
+.field + .field { margin-top: var(--s-md); }
+.label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-secondary); margin-bottom: 6px; }
+.input {
+  width: 100%; font-family: inherit; font-size: 15px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm); padding: 7px 10px;
+}
+.input:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: var(--primary); }
+.input.is-invalid { border-color: var(--danger); }
+.hint { font-size: 13px; color: var(--ink-muted); margin-top: 5px; }
+.hint.is-error { color: var(--danger); }
+
+/* ── access chips ───────────────────────────────────────── */
+.chip-access {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; letter-spacing: .125px;
+  padding: 3px 9px; border-radius: var(--r-full);
+  background: var(--surface-sunken); color: var(--ink-muted);
+}
+.chip-access.is-link { background: var(--primary-wash); color: var(--primary-active); }
+.chip-access.is-people { background: var(--secondary-wash); color: var(--secondary); }
+.chip-access .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* ── the table ──────────────────────────────────────────── */
+.panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-lg); overflow: hidden; }
+.crumbs { display: flex; align-items: center; gap: 6px; padding: 12px var(--s-md); border-bottom: 1px solid var(--hairline); font-size: 13px; color: var(--ink-muted); }
+.crumbs a { color: var(--ink-muted); text-decoration: none; }
+.crumbs .sep { color: var(--ink-faint); }
+.crumbs .here { color: var(--ink); font-weight: 500; }
+.crumbs .granted { color: var(--primary-active); font-weight: 500; position: relative; padding-left: 10px; }
+.crumbs .granted::before { content: ""; position: absolute; left: 0; top: -12px; bottom: -13px; width: 2px; background: var(--primary); }
+
+.inherit-banner {
+  display: flex; align-items: center; gap: var(--s-xs);
+  padding: 9px var(--s-md); background: var(--primary-wash);
+  border-bottom: 1px solid var(--hairline); font-size: 13px; color: var(--primary-active);
+}
+.inherit-banner .grow { flex: 1; }
+.inherit-banner button { background: none; border: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .125px;
+  text-transform: uppercase; color: var(--ink-faint);
+  padding: 8px var(--s-md); border-bottom: 1px solid var(--hairline); background: var(--surface);
+}
+tbody td { padding: 9px var(--s-md); border-bottom: 1px solid var(--hairline); font-size: 15px; vertical-align: middle; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.is-hover td { background: var(--surface-sunken); }
+.cell-name { display: flex; align-items: center; gap: 10px; }
+.ico { width: 16px; height: 16px; flex: none; color: var(--ink-faint); }
+.ico.folder { color: var(--secondary); }
+td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-muted); white-space: nowrap; }
+td.access { width: 1%; white-space: nowrap; }
+td.actions { width: 1%; padding-left: 0; }
+.row-menu { border: 0; background: none; color: var(--ink-faint); border-radius: var(--r-sm); padding: 2px 6px; cursor: pointer; opacity: 0; font-size: 16px; line-height: 1; }
+tr.is-hover .row-menu { opacity: 1; color: var(--ink-muted); background: var(--surface); }
+
+/* ── share dialog ───────────────────────────────────────── */
+.seg { display: flex; gap: 2px; padding: 2px; background: var(--surface-sunken); border-radius: var(--r-md); margin-bottom: var(--s-md); }
+.seg button { flex: 1; font: inherit; font-size: 14px; font-weight: 500; border: 0; background: none; color: var(--ink-muted); border-radius: 6px; padding: 5px; cursor: pointer; }
+.seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-soft); }
+.link-row { display: flex; gap: var(--s-xs); }
+.link-row .input { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); }
+.grantee { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--hairline); font-size: 14px; }
+.grantee:last-child { border-bottom: 0; }
+.grantee .who { flex: 1; }
+.grantee .who small { display: block; color: var(--ink-faint); font-size: 12px; }
+.grantee .pending { font-size: 12px; color: var(--warning); }
+.avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--secondary-wash); color: var(--secondary); font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex: none; }
+
+/* the signature: rows whose access came from an ancestor carry the rail */
+tr.inherited td:first-child { position: relative; }
+tr.inherited td:first-child::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--primary);
+}
+
+
+/* ── dialog ─────────────────────────────────────────────── */
+.dialog {
+  width: 420px; background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-soft); padding: var(--s-lg);
+}
+.dialog h3 { font-size: 20px; font-weight: 600; letter-spacing: -.125px; }
+.dialog p { margin: var(--s-sm) 0 0; font-size: 15px; line-height: 1.5; color: var(--ink-secondary); }
+.manifest { margin: var(--s-md) 0 0; padding: var(--s-sm) var(--s-md); background: var(--surface-sunken); border-radius: var(--r-md); }
+.manifest div { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: var(--ink-secondary); }
+.manifest .v { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--s-xs); margin-top: var(--s-lg); }
+
+/* ── upload queue ───────────────────────────────────────── */
+.queue { width: 380px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-lg); box-shadow: var(--shadow-soft); overflow: hidden; }
+.queue-head { display: flex; align-items: center; padding: 10px var(--s-md); border-bottom: 1px solid var(--hairline); font-size: 13px; font-weight: 500; }
+.queue-head .grow { flex: 1; }
+.q-item { padding: 10px var(--s-md); border-bottom: 1px solid var(--hairline); }
+.q-item:last-child { border-bottom: 0; }
+.q-top { display: flex; align-items: baseline; gap: var(--s-xs); font-size: 14px; }
+.q-top .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-top .pct { font-family: var(--mono); font-size: 12px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.bar { height: 3px; border-radius: var(--r-full); background: var(--surface-sunken); margin-top: 7px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.bar.is-error > i { background: var(--danger); }
+.q-msg { font-size: 13px; color: var(--ink-muted); margin-top: 6px; display: flex; align-items: center; gap: var(--s-xs); }
+.q-msg.is-error { color: var(--danger); }
+.q-msg button { background: none; border: 0; font: inherit; color: var(--primary); cursor: pointer; padding: 0; text-decoration: underline; }
+.conflict { display: flex; gap: 6px; margin-top: var(--s-xs); }
+.conflict .btn-utility { border: 1px solid var(--hairline-strong); font-size: 13px; padding: 3px 10px; }
+
+/* ── empty state ────────────────────────────────────────── */
+.empty { text-align: center; padding: 52px var(--s-lg); }
+.empty h3 { font-size: 20px; font-weight: 600; }
+.empty p { margin: var(--s-xs) auto var(--s-md); color: var(--ink-muted); font-size: 15px; max-width: 42ch; line-height: 1.5; }
+
+/* ── toast ──────────────────────────────────────────────── */
+.toast { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-md); box-shadow: var(--shadow-soft); padding: 10px var(--s-md); font-size: 14px; }
+.toast .mark { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.toast.ok .mark { background: var(--success); }
+.toast.err .mark { background: var(--danger); }
+.toast button { background: none; border: 0; font: inherit; color: var(--primary); cursor: pointer; text-decoration: underline; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: var(--s-lg); align-items: start; }
+.stack { display: flex; flex-direction: column; gap: var(--s-md); }
+.elev { padding: var(--s-md); border-radius: var(--r-md); background: var(--surface); font-size: 13px; }
+.elev.flat { border: 1px solid var(--hairline); }
+.elev.raised { box-shadow: var(--shadow-soft); }
+
+.theme-dark { background: var(--canvas); border-radius: var(--r-xl); padding: var(--s-xxl); margin-top: var(--s-lg); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <h1>Data Room</h1>
+    <p>A quiet document tool. Chrome recedes to hairlines and one blue; the only thing allowed to
+       shout is who can see a file. Everything below is the working token set, so the app is built
+       from this page rather than the other way round.</p>
+  </div>
+
+  <section>
+    <p class="eyebrow">Colour · light</p>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:#f6f5f4"></div><div class="meta"><div class="name">canvas</div><div class="hex">#f6f5f4</div></div></div>
+      <div class="sw"><div class="chip" style="background:#ffffff;border-bottom:1px solid #e6e6e6"></div><div class="meta"><div class="name">surface</div><div class="hex">#ffffff</div></div></div>
+      <div class="sw"><div class="chip" style="background:#efedeb"></div><div class="meta"><div class="name new">surface-sunken</div><div class="hex">#efedeb</div></div></div>
+      <div class="sw"><div class="chip" style="background:#e6e6e6"></div><div class="meta"><div class="name">hairline</div><div class="hex">#e6e6e6</div></div></div>
+      <div class="sw"><div class="chip" style="background:#d4d2cf"></div><div class="meta"><div class="name new">hairline-strong</div><div class="hex">#d4d2cf</div></div></div>
+      <div class="sw"><div class="chip" style="background:#000000"></div><div class="meta"><div class="name">ink</div><div class="hex">#000000</div></div></div>
+      <div class="sw"><div class="chip" style="background:#31302e"></div><div class="meta"><div class="name">ink-secondary</div><div class="hex">#31302e</div></div></div>
+      <div class="sw"><div class="chip" style="background:#615d59"></div><div class="meta"><div class="name">ink-muted</div><div class="hex">#615d59</div></div></div>
+      <div class="sw"><div class="chip" style="background:#a39e98"></div><div class="meta"><div class="name">ink-faint</div><div class="hex">#a39e98</div></div></div>
+      <div class="sw"><div class="chip" style="background:#0075de"></div><div class="meta"><div class="name">primary</div><div class="hex">#0075de</div></div></div>
+      <div class="sw"><div class="chip" style="background:#eaf4fd"></div><div class="meta"><div class="name new">primary-wash</div><div class="hex">#eaf4fd</div></div></div>
+      <div class="sw"><div class="chip" style="background:#213183"></div><div class="meta"><div class="name">secondary</div><div class="hex">#213183</div></div></div>
+      <div class="sw"><div class="chip" style="background:#eceef7"></div><div class="meta"><div class="name new">secondary-wash</div><div class="hex">#eceef7</div></div></div>
+      <div class="sw"><div class="chip" style="background:#c0392b"></div><div class="meta"><div class="name">danger</div><div class="hex">#c0392b</div></div></div>
+      <div class="sw"><div class="chip" style="background:#15803d"></div><div class="meta"><div class="name">success</div><div class="hex">#15803d</div></div></div>
+      <div class="sw"><div class="chip" style="background:#b45309"></div><div class="meta"><div class="name">warning</div><div class="hex">#b45309</div></div></div>
+    </div>
+    <p class="note">Five tokens in <span class="new">blue</span> are new. The original set had no
+      resting fill for a hovered row, no second divider weight, and no tinted background for the two
+      share modes, so state had to be carried by shadows. Hairlines and washes keep the surface flat.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Type · Inter for prose, mono for machine facts</p>
+    <div class="type-row"><span class="type-key">display / 40</span><span style="font-size:40px;line-height:1.1;font-weight:700;letter-spacing:-1px">Project Meridian</span></div>
+    <div class="type-row"><span class="type-key">title / 26</span><span style="font-size:26px;line-height:1.23;font-weight:700;letter-spacing:-.625px">Financials</span></div>
+    <div class="type-row"><span class="type-key">heading / 20</span><span style="font-size:20px;line-height:1.4;font-weight:600;letter-spacing:-.125px">Delete this folder?</span></div>
+    <div class="type-row"><span class="type-key">body / 15</span><span style="font-size:15px;line-height:1.33">Audited statements 2024.pdf</span></div>
+    <div class="type-row"><span class="type-key">caption / 13</span><span style="font-size:13px;line-height:1.43;color:var(--ink-muted)">Shared with 3 people</span></div>
+    <div class="type-row"><span class="type-key">eyebrow / 12</span><span style="font-size:12px;font-weight:600;letter-spacing:.125px;text-transform:uppercase;color:var(--ink-faint)">Access</span></div>
+    <div class="type-row"><span class="type-key">mono / 13</span><span class="mono" style="font-size:13px;color:var(--ink-muted)">2.4 MB · 27 Aug 2026 · r7Kq2xPd</span></div>
+    <p class="note">One prose family, used across its full range rather than paired with a decorative
+      face: documents should look like documents. The mono face is not decoration either. It carries
+      sizes, dates and share tokens, the things a due-diligence room records rather than writes, and
+      its tabular figures keep a column of file sizes from wobbling.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Elevation · hairline first</p>
+    <div class="grid-2">
+      <div class="elev flat">Chrome is flat and bounded by a hairline: panels, rows, inputs, the table.</div>
+      <div class="elev raised">Only things that float get the shadow: dialog, popover, toast, drag ghost. Four near-transparent layers, never a hard cast.</div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Buttons</p>
+    <div class="stack">
+      <div class="btn-row"><span class="state-label">rest</span>
+        <button class="btn btn-primary">Upload files</button>
+        <button class="btn btn-secondary">New folder</button>
+        <button class="btn btn-utility">Rename</button>
+        <button class="btn btn-danger">Delete</button>
+      </div>
+      <div class="btn-row"><span class="state-label">active</span>
+        <button class="btn btn-primary is-active">Upload files</button>
+        <button class="btn btn-secondary is-active">New folder</button>
+        <button class="btn btn-utility is-active">Rename</button>
+        <button class="btn btn-danger is-active">Delete</button>
+      </div>
+      <div class="btn-row"><span class="state-label">busy</span>
+        <button class="btn btn-primary"><span class="spinner"></span>Uploading</button>
+        <button class="btn btn-secondary" disabled>New folder</button>
+        <button class="btn btn-utility" disabled>Rename</button>
+      </div>
+      <div class="btn-row"><span class="state-label">focus</span>
+        <button class="btn btn-primary" style="outline:2px solid var(--primary);outline-offset:2px">Upload files</button>
+        <button class="btn btn-secondary" style="outline:2px solid var(--primary);outline-offset:2px">New folder</button>
+      </div>
+    </div>
+    <p class="note">Pill for anything that acts on the room, a soft rectangle for row-level utilities.
+      Destructive actions are never red until you are already committed to them: the trigger is
+      outlined, only the confirming button in the dialog fills.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Fields</p>
+    <div class="grid-2">
+      <div>
+        <div class="field">
+          <label class="label">Folder name</label>
+          <input class="input" value="Financials">
+        </div>
+        <div class="field">
+          <label class="label">Share with</label>
+          <input class="input" placeholder="name@company.com" style="outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)">
+          <p class="hint">They will need to sign in with this address.</p>
+        </div>
+      </div>
+      <div>
+        <div class="field">
+          <label class="label">File name</label>
+          <input class="input is-invalid" value="Audited statements 2024.pdf">
+          <p class="hint is-error">A file with this name is already in Financials.</p>
+        </div>
+        <p class="note" style="margin-top:var(--s-md)">Errors say what happened and where, in the
+          interface's voice. No apology, no "oops", and never a bare "invalid".</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Access — the one thing allowed to shout</p>
+    <div class="btn-row" style="margin-bottom:var(--s-md)">
+      <span class="chip-access"><span class="dot"></span>Private</span>
+      <span class="chip-access is-link"><span class="dot"></span>Anyone with the link</span>
+      <span class="chip-access is-people"><span class="dot"></span>3 people</span>
+    </div>
+
+    <div class="panel">
+      <div class="crumbs">
+        <a href="#">Project Meridian</a><span class="sep">/</span>
+        <a href="#" class="granted">Financials</a><span class="sep">/</span>
+        <span class="here">Q4</span>
+      </div>
+      <div class="inherit-banner">
+        <span class="grow">Everything here is visible to anyone with the link, granted at <strong>Financials</strong>.</span>
+        <button>Revoke</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Access</th><th style="text-align:right">Size</th><th style="text-align:right">Modified</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr class="inherited">
+            <td><span class="cell-name"><svg class="ico folder" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.5A1.5 1.5 0 0 1 3 2h3l1.5 1.5H13A1.5 1.5 0 0 1 14.5 5v7A1.5 1.5 0 0 1 13 13.5H3A1.5 1.5 0 0 1 1.5 12z"/></svg>Bank statements</span></td>
+            <td class="access"><span class="chip-access is-link"><span class="dot"></span>Inherited</span></td>
+            <td class="num">18 items</td><td class="num">26 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+          </tr>
+          <tr class="inherited is-hover">
+            <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Audited statements 2024.pdf</span></td>
+            <td class="access"><span class="chip-access is-link"><span class="dot"></span>Inherited</span></td>
+            <td class="num">2.4 MB</td><td class="num">27 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+          </tr>
+          <tr class="inherited">
+            <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Cap table.pdf</span></td>
+            <td class="access"><span class="chip-access is-people"><span class="dot"></span>2 people</span></td>
+            <td class="num">318 KB</td><td class="num">27 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+          </tr>
+          <tr>
+            <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Board minutes (draft).pdf</span></td>
+            <td class="access"><span class="chip-access"><span class="dot"></span>Private</span></td>
+            <td class="num">96 KB</td><td class="num">27 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>The rail is the signature.</strong> A row whose access came from a folder
+      above it carries a two-pixel rule in the colour of that share, and the same rule runs up the
+      breadcrumb to the ancestor that granted it. Nothing else on the page uses a coloured edge, so
+      the eye reads inheritance without a legend. Rows granted directly have no rail: the difference
+      between "shared" and "shared from above" is the question a data room actually gets asked, and
+      it is the same distinction the access check makes in SQL.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Sharing · two modes, one revoke</p>
+    <div class="grid-2">
+      <div class="dialog">
+        <h3>Share Financials</h3>
+        <p style="font-size:13px;color:var(--ink-muted);margin-top:6px">Recipients get read-only access to this folder and everything inside it.</p>
+
+        <div class="seg" style="margin-top:var(--s-md)">
+          <button class="on">Anyone with the link</button>
+          <button>Specific people</button>
+        </div>
+
+        <div class="link-row">
+          <input class="input" value="dataroom.app/s/r7Kq2xPdN4mHtLvB" readonly>
+          <button class="btn btn-secondary">Copy</button>
+        </div>
+        <p class="hint">Anyone holding this link can view. Revoking it breaks every copy.</p>
+
+        <div style="margin-top:var(--s-lg)">
+          <p class="eyebrow" style="margin-bottom:var(--s-xs)">Already shared</p>
+          <div class="grantee">
+            <span class="avatar">DK</span>
+            <span class="who">daniel@acme.com<small>Added 26 Aug 2026</small></span>
+            <button class="btn btn-utility" style="font-size:13px">Revoke</button>
+          </div>
+          <div class="grantee">
+            <span class="avatar">MR</span>
+            <span class="who">m.rossi@acme.com<small class="pending">Has not signed in yet</small></span>
+            <button class="btn btn-utility" style="font-size:13px">Revoke</button>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="btn btn-secondary">Done</button>
+        </div>
+      </div>
+
+      <p class="note" style="margin:0">Both modes live in one dialog because they answer the same
+        question, and a person deciding who sees a folder should not have to find two places to look.
+        The link is shown in the mono face: it is a token, not prose, and monospace makes a
+        mistyped character visible. Someone invited before they have an account is labelled rather
+        than hidden, since a room owner needs to know the invitation is out even though nobody has
+        used it. Revoking is a single control in both modes, never buried behind a menu, because it
+        is the one action that has to be fast.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Destructive confirmation · say what dies</p>
+    <div class="grid-2">
+      <div class="dialog">
+        <h3>Delete Financials?</h3>
+        <p>This removes the folder and everything inside it. Shared links to any of it stop working immediately.</p>
+        <div class="manifest">
+          <div><span>Folders</span><span class="v">4</span></div>
+          <div><span>Files</span><span class="v">31</span></div>
+          <div><span>Total size</span><span class="v">184 MB</span></div>
+          <div><span>Active shares</span><span class="v">2</span></div>
+        </div>
+        <div class="dialog-actions">
+          <button class="btn btn-secondary">Keep it</button>
+          <button class="btn" style="background:var(--danger);color:#fff">Delete 35 items</button>
+        </div>
+      </div>
+      <p class="note" style="margin:0">The counts are not decoration. They come from one prefix scan
+        over the materialized path, the same query that answers "how big is this folder", so the
+        number on the button is the number of rows the delete will touch. The confirming label
+        repeats the count rather than saying "Delete", because that is the fact worth reading twice.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Upload · progress per file, conflicts per file</p>
+    <div class="grid-2">
+      <div class="queue">
+        <div class="queue-head"><span class="grow">Uploading 4 files</span><button class="btn btn-utility" style="font-size:13px">Hide</button></div>
+        <div class="q-item">
+          <div class="q-top"><span class="name">Audited statements 2024.pdf</span><span class="pct">68%</span></div>
+          <div class="bar"><i style="width:68%"></i></div>
+        </div>
+        <div class="q-item">
+          <div class="q-top"><span class="name">Cap table.pdf</span><span class="pct">100%</span></div>
+          <div class="bar"><i style="width:100%"></i></div>
+          <div class="q-msg">Added to Q4</div>
+        </div>
+        <div class="q-item">
+          <div class="q-top"><span class="name">Board minutes.pdf</span><span class="pct">—</span></div>
+          <div class="q-msg">A file with this name is already here.</div>
+          <div class="conflict">
+            <button class="btn btn-utility">Keep both</button>
+            <button class="btn btn-utility">Replace</button>
+            <button class="btn btn-utility">Skip</button>
+          </div>
+        </div>
+        <div class="q-item">
+          <div class="q-top"><span class="name">Diligence pack.pdf</span><span class="pct">41%</span></div>
+          <div class="bar is-error"><i style="width:41%"></i></div>
+          <div class="q-msg is-error">Connection lost. <button>Retry</button></div>
+        </div>
+      </div>
+      <p class="note" style="margin:0">One file failing must not take the batch with it. Each row owns
+        its own progress, its own error and its own conflict decision, with "apply to the rest" offered
+        once a choice is made. Progress is real: the browser uploads straight to storage on a signed
+        URL, so the percentage is the request, not a guess.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Empty and interrupted</p>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="empty">
+          <h3>Nothing in Q4 yet</h3>
+          <p>Drop files here, or use the button above. PDFs preview in place.</p>
+          <button class="btn btn-primary">Upload files</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="empty">
+          <h3>This link no longer works</h3>
+          <p>The owner revoked access to Financials. Ask them for a new link if you still need it.</p>
+          <button class="btn btn-secondary">Back to sign in</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">An empty screen is an invitation to act, so it carries the action. A revoked screen
+      names what was lost and what to do next, and never leaves someone staring at a spinner or a 403.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Toasts</p>
+    <div class="btn-row">
+      <span class="toast ok"><span class="mark"></span>Moved to Bank statements <button>Undo</button></span>
+      <span class="toast err"><span class="mark"></span>Could not rename: that name is taken</span>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Dark</p>
+    <div class="dark theme-dark">
+      <div class="swatches" style="margin-bottom:var(--s-lg);grid-template-columns:repeat(4,1fr)">
+        <div class="sw"><div class="chip" style="background:#191919"></div><div class="meta"><div class="name">canvas</div><div class="hex">#191919</div></div></div>
+        <div class="sw"><div class="chip" style="background:#262626"></div><div class="meta"><div class="name">surface</div><div class="hex">#262626</div></div></div>
+        <div class="sw"><div class="chip" style="background:#212121"></div><div class="meta"><div class="name new">surface-sunken</div><div class="hex">#212121</div></div></div>
+        <div class="sw"><div class="chip" style="background:#343434"></div><div class="meta"><div class="name">hairline</div><div class="hex">#343434</div></div></div>
+        <div class="sw"><div class="chip" style="background:#ededed"></div><div class="meta"><div class="name">ink</div><div class="hex">#ededed</div></div></div>
+        <div class="sw"><div class="chip" style="background:#2f8fef"></div><div class="meta"><div class="name">primary</div><div class="hex">#2f8fef</div></div></div>
+        <div class="sw"><div class="chip" style="background:#16293c"></div><div class="meta"><div class="name new">primary-wash</div><div class="hex">#16293c</div></div></div>
+        <div class="sw"><div class="chip" style="background:#8aa0ff"></div><div class="meta"><div class="name">secondary</div><div class="hex">#8aa0ff</div></div></div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:var(--s-lg)">
+        <button class="btn btn-primary">Upload files</button>
+        <button class="btn btn-secondary">New folder</button>
+        <button class="btn btn-utility">Rename</button>
+        <button class="btn btn-danger">Delete</button>
+        <span class="chip-access is-link"><span class="dot"></span>Anyone with the link</span>
+        <span class="chip-access is-people"><span class="dot"></span>3 people</span>
+      </div>
+
+      <div class="panel">
+        <div class="crumbs">
+          <a href="#">Project Meridian</a><span class="sep">/</span>
+          <a href="#" class="granted">Financials</a><span class="sep">/</span>
+          <span class="here">Q4</span>
+        </div>
+        <div class="inherit-banner">
+          <span class="grow">Everything here is visible to anyone with the link, granted at <strong>Financials</strong>.</span>
+          <button>Revoke</button>
+        </div>
+        <table>
+          <thead><tr><th>Name</th><th>Access</th><th style="text-align:right">Size</th><th style="text-align:right">Modified</th><th></th></tr></thead>
+          <tbody>
+            <tr class="inherited">
+              <td><span class="cell-name"><svg class="ico folder" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.5A1.5 1.5 0 0 1 3 2h3l1.5 1.5H13A1.5 1.5 0 0 1 14.5 5v7A1.5 1.5 0 0 1 13 13.5H3A1.5 1.5 0 0 1 1.5 12z"/></svg>Bank statements</span></td>
+              <td class="access"><span class="chip-access is-link"><span class="dot"></span>Inherited</span></td>
+              <td class="num">18 items</td><td class="num">26 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+            </tr>
+            <tr class="inherited">
+              <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Cap table.pdf</span></td>
+              <td class="access"><span class="chip-access is-people"><span class="dot"></span>2 people</span></td>
+              <td class="num">318 KB</td><td class="num">27 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+            </tr>
+            <tr>
+              <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Board minutes (draft).pdf</span></td>
+              <td class="access"><span class="chip-access"><span class="dot"></span>Private</span></td>
+              <td class="num">96 KB</td><td class="num">27 Aug 2026</td><td class="actions"><button class="row-menu">⋯</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
