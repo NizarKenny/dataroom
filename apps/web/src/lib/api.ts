@@ -26,7 +26,12 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
   if (options.signed !== false) {
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
-    if (!token) throw new ApiError(401, 'unauthorized', 'Sign in to continue')
+    if (!token) {
+      // A refresh token revoked on the server comes back as no session and no
+      // event, so nothing else would notice. Signing out is what tells the app.
+      await supabase.auth.signOut()
+      throw new ApiError(401, 'unauthorized', 'Sign in to continue')
+    }
     headers.authorization = `Bearer ${token}`
   }
 
@@ -65,10 +70,13 @@ export type ResourceType = 'data_room' | 'folder' | 'file'
 
 /** Why a row is reachable, as the table draws it. Null for anyone but the owner. */
 export interface AccessBadge {
+  /** Everyone this node is visible to, however the access arrived. */
   people: number
   link: boolean
-  direct: boolean
+  /** What was granted on this node itself, which is what the row's chip says. */
+  here: { people: number; link: boolean }
   inherited: boolean
+  /** The closest folder above that access comes from. */
   grantedAt: string | null
 }
 
