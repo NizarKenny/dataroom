@@ -16,7 +16,19 @@ import { roomRoutes } from './routes/rooms.js'
 import { shareRoutes } from './routes/shares.js'
 
 export async function buildApp(): Promise<FastifyInstance> {
-  const app = Fastify({ logger: { level: env.LOG_LEVEL } })
+  const app = Fastify({
+    logger: {
+      level: env.LOG_LEVEL,
+      serializers: {
+        // A public link's token is a path segment, and it works on its own. The
+        // default serializer would write it into every request log.
+        req: (request) => ({
+          method: request.method,
+          url: request.url.replace(/^\/links\/[^/?]+/, '/links/[token]'),
+        }),
+      },
+    },
+  })
 
   app.setValidatorCompiler(validatorCompiler)
   app.setSerializerCompiler(serializerCompiler)

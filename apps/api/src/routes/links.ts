@@ -68,6 +68,7 @@ export const linkRoutes: FastifyPluginAsyncZod = async (app) => {
       const link = await signDownload(
         file.storageKey,
         file.name,
+        file.mimeType,
         request.query.disposition === 'attachment',
       )
 

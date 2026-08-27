@@ -31,13 +31,35 @@ export async function signUpload(key: string, replace: boolean) {
   return { url: data.signedUrl, token: data.token }
 }
 
-export async function signDownload(key: string, filename: string, asAttachment: boolean) {
+/**
+ * The types the browser is allowed to render from the object. The content type on
+ * an object is whatever the uploader's browser said it was, and the object is
+ * served from a storage host, so anything outside this list is handed over as a
+ * download however the caller asked for it. An HTML file rendered inline would be
+ * a page running on that host.
+ */
+const RENDERABLE = new Set([
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+])
+
+export async function signDownload(
+  key: string,
+  filename: string,
+  mimeType: string,
+  asAttachment: boolean,
+) {
+  const inline = !asAttachment && RENDERABLE.has(mimeType)
   const { data, error } = await bucket().createSignedUrl(key, DOWNLOAD_TTL_SECONDS, {
-    // A PDF opens in the viewer unless the reader asked to save it.
-    download: asAttachment ? filename : false,
+    download: inline ? false : filename,
   })
   if (error || !data) throw new Error(`Could not sign a download for ${key}: ${error?.message}`)
-  return { url: data.signedUrl, expiresIn: DOWNLOAD_TTL_SECONDS }
+  return { url: data.signedUrl, expiresIn: DOWNLOAD_TTL_SECONDS, inline }
 }
 
 /**
