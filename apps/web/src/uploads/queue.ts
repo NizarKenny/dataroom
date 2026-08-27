@@ -7,6 +7,8 @@ export interface Upload {
   id: string
   file: File
   name: string
+  /** Fixed when the file is dropped. The reader may walk away before it lands. */
+  folderId: string
   status: Status
   progress: number
   message?: string
@@ -20,8 +22,12 @@ const AT_ONCE = 3
  * The queue lives in a ref rather than in state, because an upload that finishes
  * has to look at what the queue holds right now, not at what it held when the
  * request started. State is only the render of it.
+ *
+ * That also means the queue outlives a walk to another folder, so each item
+ * carries the folder it was dropped into rather than reading whichever one is on
+ * screen when it finishes.
  */
-export function useUploads(folderId: string, onFileAdded: () => void) {
+export function useUploads(folderId: string, onFileAdded: (into: string) => void) {
   const store = useRef<Upload[]>([])
   const running = useRef(new Set<string>())
   const [, render] = useReducer((n: number) => n + 1, 0)
@@ -37,17 +43,17 @@ export function useUploads(folderId: string, onFileAdded: () => void) {
 
     patch(id, { status: 'uploading', progress: 0, message: undefined })
     try {
-      const ticket = await api.files.ticket(folderId, {
+      const ticket = await api.files.ticket(item.folderId, {
         name: item.name,
         sizeBytes: item.file.size,
         onConflict: item.onConflict,
       })
 
       await putToStorage(ticket.url, item.file, (fraction) => patch(id, { progress: fraction }))
-      await api.files.record(folderId, ticket.fileId, ticket.name)
+      await api.files.record(item.folderId, ticket.fileId, ticket.name)
 
       patch(id, { status: 'done', progress: 1, name: ticket.name })
-      onFileAdded()
+      onFileAdded(item.folderId)
     } catch (problem) {
       // A clash is not a failure, it is a question. The row turns into three
       // buttons and waits instead of making the choice for the reader.
@@ -86,6 +92,7 @@ export function useUploads(folderId: string, onFileAdded: () => void) {
           id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`,
           file,
           name: file.name,
+          folderId,
           status: 'waiting' as const,
           progress: 0,
           onConflict: 'fail' as const,

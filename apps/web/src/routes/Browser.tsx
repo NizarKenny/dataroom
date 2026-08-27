@@ -38,16 +38,18 @@ export function Browser() {
 
   const picker = useRef<HTMLInputElement>(null)
 
-  function refresh() {
-    void queryClient.invalidateQueries({ queryKey: ['folder', folderId] })
+  function refresh(which = folderId) {
+    void queryClient.invalidateQueries({ queryKey: ['folder', which] })
     void queryClient.invalidateQueries({ queryKey: ['rooms'] })
   }
 
-  const uploads = useUploads(folderId, refresh)
+  // A file that lands after the reader has walked on refreshes the folder it
+  // actually went into, not the one they are looking at now.
+  const uploads = useUploads(folderId, (into) => refresh(into))
 
   const createFolder = useMutation({
     mutationFn: (name: string) => api.folders.create(folderId, name),
-    onSuccess: refresh,
+    onSuccess: () => refresh(),
   })
 
   const rename = useMutation({
@@ -55,7 +57,7 @@ export function Browser() {
       row.kind === 'folder'
         ? api.folders.update(row.id, { name })
         : api.files.update(row.id, { name }),
-    onSuccess: refresh,
+    onSuccess: () => refresh(),
   })
 
   const move = useMutation({
@@ -193,6 +195,9 @@ export function Browser() {
           {folder.access && (
             <AccessBanner
               access={folder.access}
+              grantedAtName={
+                breadcrumbs.find((crumb) => crumb.id === folder.access?.grantedAt)?.name ?? null
+              }
               onManage={() =>
                 setSharing(
                   atRoot
@@ -307,6 +312,7 @@ export function Browser() {
         file={previewing?.kind === 'file' ? previewing : null}
         onOpenChange={(open) => !open && setPreviewing(null)}
         getLink={(id, disposition) => api.files.download(id, disposition)}
+        scope="account"
       />
 
       <UploadPanel queue={uploads} />
