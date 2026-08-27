@@ -5,8 +5,9 @@
  * documents, and both kinds of sharing already in place so the access rules are
  * visible without having to set anything up:
  *
- *   03 Legal      is shared with the reader account
+ *   03 Legal              is shared with the reader account
  *   02 Financials/Q4 2025 has a public link
+ *   Management accounts.pdf has been re-issued once, so it has a history
  *
  * Running it again replaces the room and leaves everything else alone.
  *   npx tsx scripts/seed.ts
@@ -250,6 +251,7 @@ interface Placed {
 async function plant(
   node: Node,
   roomId: string,
+  ownerId: string,
   parent: Placed | null,
   placed: Map<string, Placed>,
 ): Promise<Placed> {
@@ -285,12 +287,23 @@ async function plant(
         storageKey: key,
         sizeBytes: BigInt(file.body.byteLength),
         mimeType: file.mimeType,
+        // A seeded file is its own first version, the same as an uploaded one.
+        versions: {
+          create: {
+            id: newId(),
+            version: 1,
+            storageKey: key,
+            sizeBytes: BigInt(file.body.byteLength),
+            mimeType: file.mimeType,
+            createdById: ownerId,
+          },
+        },
       },
     })
   }
 
   for (const child of node.folders ?? []) {
-    await plant(child, roomId, here, placed)
+    await plant(child, roomId, ownerId, here, placed)
   }
 
   return here
@@ -312,7 +325,7 @@ async function main() {
   await prisma.dataRoom.create({ data: { id: roomId, ownerId, name: ROOM } })
 
   const placed = new Map<string, Placed>()
-  await plant(TREE, roomId, null, placed)
+  await plant(TREE, roomId, ownerId, null, placed)
 
   const legal = placed.get('03 Legal')
   const q4 = placed.get('Q4 2025')
@@ -345,6 +358,47 @@ async function main() {
     ],
   })
 
+  // One document arrives twice, because a room where nothing was ever re-issued
+  // is not a room anybody has used. This is what History opens on.
+  const accounts = await prisma.file.findFirst({
+    where: { dataRoomId: roomId, name: 'Management accounts.pdf' },
+  })
+  if (!accounts) throw new Error('the demo tree changed shape')
+
+  const revised = pdf('Management accounts, Q4 2025 (revised)', [
+    'Revenue grew 9 percent on the quarter, driven by the enterprise tier.',
+    'Gross margin held at 67 percent.',
+    'Headcount ended the quarter at 84, against a plan of 88.',
+    '',
+    'Revised after the year end review: two December invoices moved into Q1.',
+    '',
+    'Sample document generated for the demo data room.',
+  ])
+  const revisedKey = objectKey(roomId, accounts.id, 2)
+  await putObject(revisedKey, revised, 'application/pdf')
+  await prisma.$transaction([
+    prisma.fileVersion.create({
+      data: {
+        id: newId(),
+        fileId: accounts.id,
+        version: 2,
+        storageKey: revisedKey,
+        sizeBytes: BigInt(revised.byteLength),
+        mimeType: 'application/pdf',
+        createdById: ownerId,
+      },
+    }),
+    prisma.file.update({
+      where: { id: accounts.id },
+      data: {
+        storageKey: revisedKey,
+        sizeBytes: BigInt(revised.byteLength),
+        mimeType: 'application/pdf',
+        version: 2,
+      },
+    }),
+  ])
+
   const files = await prisma.file.aggregate({
     where: { dataRoomId: roomId },
     _count: { _all: true },
@@ -355,6 +409,7 @@ async function main() {
   console.log(`  owner   ${OWNER} / ${PASSWORD}`)
   console.log(`  reader  ${READER} / ${PASSWORD}, invited to 03 Legal`)
   console.log(`  link    /l/atlas-q4-2025-review`)
+  console.log(`  history Management accounts.pdf is at version 2`)
   console.log(`  ${files._count._all} files, ${files._sum.sizeBytes} bytes`)
 }
 
