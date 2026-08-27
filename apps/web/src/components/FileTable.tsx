@@ -102,11 +102,11 @@ export function FileTable({ rows, onOpen, actions }: Props) {
               </Th>
             ))}
 
-            {actions && (
-              <Th aria-label="Columns" className="pr-3 pl-0 text-right">
-                <ColumnsMenu />
-              </Th>
-            )}
+            {/* Arranging the columns is the reader's, not the owner's: a link
+                holder reads the same table and can want the same order. */}
+            <Th aria-label="Columns" className="pr-3 pl-0 text-right">
+              <ColumnsMenu />
+            </Th>
           </tr>
         </thead>
 
@@ -154,11 +154,9 @@ export function FileTable({ rows, onOpen, actions }: Props) {
                 ),
               )}
 
-              {actions && (
-                <td className="py-[13px] pr-3 pl-0">
-                  <RowMenu row={row} actions={actions} />
-                </td>
-              )}
+              <td className="py-[13px] pr-3 pl-0">
+                {actions && <RowMenu row={row} actions={actions} />}
+              </td>
             </tr>
           ))}
         </tbody>

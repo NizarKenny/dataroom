@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { COLUMNS, useColumns } from '@/lib/columns'
-import { ArrowDown, ArrowUp, Check, Columns3 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Columns3 } from 'lucide-react'
 
 /**
  * Dragging the headers is the quick way to arrange them. This is the same thing
@@ -57,7 +57,7 @@ export function ColumnsMenu() {
                 disabled={index === 0}
                 onClick={() => columns.nudge(id, -1)}
               >
-                <ArrowUp />
+                <ArrowLeft />
               </Button>
               <Button
                 variant="utility"
@@ -66,7 +66,7 @@ export function ColumnsMenu() {
                 disabled={index === columns.layout.order.length - 1}
                 onClick={() => columns.nudge(id, 1)}
               >
-                <ArrowDown />
+                <ArrowRight />
               </Button>
             </div>
           )

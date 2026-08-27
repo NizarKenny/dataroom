@@ -32,7 +32,7 @@ do not use it: `GET /rooms` asks which rooms exist for this person, and
 
 | | | |
 | --- | --- | --- |
-| `GET` | `/folders/:id` | The listing: the folder, its breadcrumbs, its subfolders and files, and for an owner what reaches each row |
+| `GET` | `/folders/:id` | `?page=&modified=` where `modified` is `any`, `today`, `week`, `month` or `year`. The listing: the folder, its breadcrumbs, one page of its subfolders and files, and for an owner what reaches each row. Fifty rows to a page, folders first and then files, both by name |
 | `POST` | `/folders` | `{ parentId, name }` |
 | `PATCH` | `/folders/:id` | `{ name?, parentId? }`. A rename touches one row. A move rewrites the subtree's paths and the shares pointing into it, in one transaction behind a per room advisory lock |
 | `DELETE` | `/folders/:id` | Revokes the shares inside first, so a link says it was switched off rather than answering 404 |
@@ -68,7 +68,7 @@ Uploads go in two steps, and the bytes never pass through this API.
 | | | |
 | --- | --- | --- |
 | `GET` | `/links/:token` | What the link points at: a folder to open, or a single file |
-| `GET` | `/links/:token/folders/:id` | The same listing as above, refused for anything outside the shared subtree |
+| `GET` | `/links/:token/folders/:id` | The same listing as above, `?page=` and `?modified=` included, refused for anything outside the shared subtree |
 | `GET` | `/links/:token/files/:id/download-url` | Same as the signed in version, for a file the link reaches |
 | `GET` | `/links/:token/search?q=` | The same search, inside what the link reaches |
 

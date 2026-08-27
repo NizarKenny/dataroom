@@ -36,6 +36,10 @@ Four things worth opening:
 4. Type into the search field. It looks at file names across the whole room and
    says which folder each one sits in. As the reader it finds only what they
    were given.
+5. Open `05 Data pack`, which holds more rows than one page. The pager shows
+   three numbers and two arrows, and the arrows scroll the numbers rather than
+   turning the page. Drag a column header onto another to swap them, or switch
+   one off from the icon at the end of the header row: it is remembered.
 
 ![Rows that inherit their access](docs/screenshots/inherited.png)
 
@@ -235,10 +239,14 @@ The price of the choice is that moving a folder rewrites the paths of its
 subtree. That is one statement, and moves are rare next to renames, which cost
 nothing because paths are built from ids.
 
-Not built: keyset pagination on a folder listing. Past a few thousand children
-the endpoint should page on `(parent_id, name)` for the subfolders and
-`(folder_id, name)` for the files, and both of those indexes already exist,
-because they are the ones enforcing the names.
+A listing is one page of fifty rows, folders first and then files, both by name,
+and the count that feeds the pager carries the same filter as the rows so it can
+never offer a page that comes back empty. Offset rather than keyset, and that is
+a choice rather than an oversight: a pager with numbers on it has to be able to
+jump to the seventh page, and keyset only knows how to go next. The price is that
+a deep page counts rows it will not return; the indexes that make it cheap,
+`(parent_id, name)` and `(folder_id, name)`, exist already because they are the
+ones enforcing sibling names.
 
 **Per-user roles, without remodeling.** `shares.role` is already a column, on an
 enum type that today holds exactly one value, `viewer`, and defaults to it. A

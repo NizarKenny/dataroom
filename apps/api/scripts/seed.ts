@@ -358,6 +358,34 @@ async function main() {
     ],
   })
 
+  // A folder with more rows than fit on a page, because a pager nobody can reach
+  // is a pager nobody has looked at. A numbered schedule index is what actually
+  // gets this long on a deal, so that is what it is.
+  const packId = newId()
+  const pack = await prisma.folder.create({
+    data: {
+      id: packId,
+      dataRoomId: roomId,
+      parentId: placed.get(ROOM)!.id,
+      name: '05 Data pack',
+      path: childPath(placed.get(ROOM)!.path, packId),
+      depth: 1,
+    },
+  })
+  await prisma.folder.createMany({
+    data: Array.from({ length: 170 }, (_, n) => {
+      const id = newId()
+      return {
+        id,
+        dataRoomId: roomId,
+        parentId: pack.id,
+        name: `Schedule ${String(n + 1).padStart(3, '0')}`,
+        path: childPath(pack.path, id),
+        depth: 2,
+      }
+    }),
+  })
+
   // One document arrives twice, because a room where nothing was ever re-issued
   // is not a room anybody has used. This is what History opens on.
   const accounts = await prisma.file.findFirst({
@@ -410,6 +438,7 @@ async function main() {
   console.log(`  reader  ${READER} / ${PASSWORD}, invited to 03 Legal`)
   console.log(`  link    /l/atlas-q4-2025-review`)
   console.log(`  history Management accounts.pdf is at version 2`)
+  console.log(`  pager   05 Data pack holds 170 rows, four pages of them`)
   console.log(`  ${files._count._all} files, ${files._sum.sizeBytes} bytes`)
 }
 
