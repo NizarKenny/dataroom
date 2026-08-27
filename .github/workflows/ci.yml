@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    env:
+      # prisma generate reads the datasource block, so the variables have to
+      # exist. Nothing here connects to a database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npx prisma generate --schema apps/api/prisma/schema.prisma
+
+      - run: npm run typecheck --workspaces --if-present
+      - run: npm run test --workspaces --if-present
+      - run: npm run build --workspace @dataroom/web

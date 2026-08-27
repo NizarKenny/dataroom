@@ -42,8 +42,10 @@ interface Props {
 }
 
 export function FileTable({ rows, onOpen, actions }: Props) {
-  // A reader is never sent access data, so the column would be an empty stripe.
-  const showAccess = rows.some((row) => row.access !== null)
+  // The column carries what was granted on a row itself. When nothing here was,
+  // it has nothing to say: readers are sent no access data at all, and a folder
+  // whose rows only inherit is already explained by the banner and the rails.
+  const showAccess = rows.some((row) => row.access?.direct)
 
   return (
     <table className="w-full border-collapse">
