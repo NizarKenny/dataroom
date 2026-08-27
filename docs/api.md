@@ -87,6 +87,7 @@ Uploads go in two steps, and the bytes never pass through this API.
 | `bad_request` | 400 | A name with a separator, a file over the limit, a folder moved into itself |
 | `name_taken` | 409 | A sibling already has that name. The unique index is what decides, not a check beforehand |
 | `version_raced` | 409 | The file gained a version between signing the upload and recording it, which means two uploads of it overlapped |
+| `internal` | 500 | Anything unrecognised. The message never says what, because the caller learns nothing useful from it and an attacker would |
 
 ---
 

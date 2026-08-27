@@ -155,4 +155,4 @@ model defensible, so it is a decision rather than an omission.
 ---
 
 [Documentation index](README.md) · [The repository README](../README.md) ·
-[The design system](design/style-reference.html)
+[The design system](https://nizarkenny.github.io/dataroom/design/style-reference.html)

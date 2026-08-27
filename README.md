@@ -19,18 +19,20 @@ granted on a folder reaches everything inside it and nothing beside it.
 | `demo@dataroom.dev` | `dataroom-demo-2026` | owns Project Atlas |
 | `reader@dataroom.dev` | `dataroom-demo-2026` | invited to `03 Legal` only |
 
-Three things worth opening:
+Four things worth opening:
 
 1. Sign in as the reader. The room opens at `03 Legal`, the folder they were
-   given. `04 Commercial` answers 404, and the breadcrumbs do not name the
-   folders above.
+   given, and the breadcrumbs do not name the folders above it. The other three
+   folders are not drawn at all; open one of their URLs from the owner's session
+   and it answers 404, not 403.
 2. As the owner, open `02 Financials / Q4 2025`. A banner says the folder is
    shared, and every row carries a rail on its left because its access came from
    the folder, not from the row.
-3. Drop two files into a folder where one of the names is already taken. The
-   queue asks per file: keep both, new version, skip. Take the new version, then
-   open History on the row: what was there is still there, and one click puts it
-   back.
+3. Open History on `Management accounts.pdf`, in `02 Financials / Q4 2025`. It
+   has been re-issued once, so there are two versions: either can be opened, and
+   one click puts the older one back. Uploading a file whose name is already
+   taken is what produces that, and the queue asks per file: keep both, new
+   version, skip.
 4. Type into the search field. It looks at file names across the whole room and
    says which folder each one sits in. As the reader it finds only what they
    were given.
@@ -85,6 +87,7 @@ erDiagram
     data_rooms ||--o{ shares : "is shared through"
     folders ||--o{ folders : "parent of"
     folders ||--o{ files : holds
+    files ||--o{ file_versions : "has been"
     users ||--o{ shares : "is granted"
 
     folders {
@@ -98,9 +101,19 @@ erDiagram
         uuid id PK
         uuid folder_id FK
         text name
-        text storage_key "room id then file id"
+        text storage_key "the current version's object"
         int8 size_bytes
         text mime_type
+        int version "which file_versions row those three columns copy"
+    }
+    file_versions {
+        uuid id PK
+        uuid file_id FK
+        int version
+        text storage_key
+        int8 size_bytes
+        text mime_type
+        uuid created_by_id FK
     }
     shares {
         uuid id PK
@@ -108,6 +121,7 @@ erDiagram
         uuid resource_id
         text resource_path "the shared folder's path, null for a file"
         enum mode "public_link | user"
+        enum role "viewer, and only viewer so far"
         text token
         uuid grantee_user_id FK
         text grantee_email
@@ -123,8 +137,10 @@ Three decisions carry the whole thing.
 subtree, and any subtree is a single `LIKE 'prefix%'` scan. The index on `path`
 uses `text_pattern_ops`, because a default collation btree cannot serve that.
 
-**A file's object key is `<room_id>/<file_id>`**. Renaming or moving a file never
-touches storage, and deleting a room is one prefix sweep of the bucket.
+**A file's object key is built from ids**, `<room_id>/<file_id>` for the first
+version and `<room_id>/<file_id>-v<n>` for the ones after it. Renaming or moving a
+file never touches storage, every version sits one level under its room, and
+deleting a room is still one prefix sweep of the bucket.
 
 **A share stores the path it was granted at.** Asking whether a node is reachable
 is then an equality lookup rather than a walk.
@@ -136,14 +152,17 @@ is then an equality lookup rather than a walk.
 through the same function, and the public link routes go through it too, so a
 link holder and an invited reader cannot drift apart.
 
-Two routes answer a different question and so do not use it. `GET /rooms` asks
+Four routes answer a different question and so do not use it. `GET /rooms` asks
 which rooms exist for this person rather than whether one node is reachable, and
-`DELETE /shares/:id` only has to know who owns the room the share belongs to.
+`DELETE /shares/:id` only has to know who owns the room the share belongs to. The
+two search routes ask what a person may read across a whole room, so they take
+the grants once through `readableIn` and filter with them instead of testing one
+node.
 
 For a target node, `lookupKeys` returns the keys a share would have to carry to
 reach it: the path of every folder above it, its own path, and for a file its
-own id. That is at most `depth + 1` strings. One query asks for live shares
-matching any of them:
+own id. That is `depth + 1` paths for a folder, and the same plus one id for a
+file. One query asks for live shares matching any of them:
 
 ```sql
 select ... from shares
@@ -162,6 +181,12 @@ what answers this one. It answers the same question asked without a grantee,
 which is the owner's view of who can reach a node, and there it is a plain index
 scan at 1.9 ms.
 
+Both this and the subtree figures further down were measured by building the rows
+in a throwaway schema on the real Postgres, reading `EXPLAIN (ANALYZE, BUFFERS)`
+and dropping the schema. There is no benchmark in the repository to rerun: they
+are one measurement each, quoted rather than asserted, and worth what a single
+measurement is worth.
+
 When several shares cover a node, the closest one wins, because that is the one
 the interface names: a share on the file beats a share on its folder, which beats
 a share on the room.
@@ -172,12 +197,6 @@ reach a sibling branch. That leak is the reason the model exists.
 ![The share dialog](docs/screenshots/share.png)
 
 ## How it scales
-
-**Searching by name.** "Contains" is not a question a btree can answer, so
-`files_name_trgm_idx` is a GIN index over trigrams of `files.name`. The access
-filter rides along as an `OR` of path prefixes, which is the same shape and the
-same index as every other access check here, so a reader's search costs what
-their grants cost rather than what the room holds.
 
 **The size and item count of a folder, including its whole subtree.** Two
 aggregates over one range, no recursion and nothing maintained in the background.
@@ -201,8 +220,9 @@ migration and a trigger rather than a redesign, because the number it would cach
 is the number this query already returns.
 
 **A room with 100,000 files and a deep tree.** Listing one folder is an index
-scan on `(parent_id)` and `(folder_id)`; it does not care how large the room is,
-only how many children that one folder has. "Everything under this folder", which
+scan on the unique indexes that already enforce sibling names,
+`folders_parent_id_name_key` and `files_folder_id_name_key`; it does not care how
+large the room is, only how many children that one folder has. "Everything under this folder", which
 the delete manifest and the share sweep need, is one prefix scan on the index
 above.
 
@@ -216,7 +236,25 @@ subtree. That is one statement, and moves are rare next to renames, which cost
 nothing because paths are built from ids.
 
 Not built: keyset pagination on a folder listing. Past a few thousand children
-the endpoint should page on `(folder_id, name)`, and that index already exists.
+the endpoint should page on `(parent_id, name)` for the subfolders and
+`(folder_id, name)` for the files, and both of those indexes already exist,
+because they are the ones enforcing the names.
+
+**Per-user roles, without remodeling.** `shares.role` is already a column, on an
+enum type that today holds exactly one value, `viewer`, and defaults to it. A
+grant that arrives without a role is a viewer, so nothing has to be backfilled.
+Adding an editor is `ALTER TYPE share_role ADD VALUE 'editor'` in a migration,
+`role` in the share selection, `grantFor` returning `via.role` instead of the
+literal `viewer`, and `requireOwner` becoming `requireRole` at the write sites an
+editor should pass. No new table, no re-keyed rows, and reads do not change at all,
+because a read already resolves the same grant and only ever asked whether one
+exists.
+
+**Searching by name.** "Contains" is not a question a btree can answer, so
+`files_name_trgm_idx` is a GIN index over trigrams of `files.name`. The access
+filter rides along as an `OR` of path prefixes, which is the same shape and the
+same index as every other access check here, so a reader's search costs what
+their grants cost rather than what the room holds.
 
 **Many people and many shares.** Access is the one indexed query above, so its
 cost follows the depth of the node, not the number of shares in the room or the
@@ -239,15 +277,6 @@ makes drawing a folder cost rows multiplied by shares, which is a slow listing
 long before the queries are the problem. If a room ever did hold thousands of
 shares, the same answer comes from a `resource_path in (...)` over the listed
 rows.
-
-**Per-user roles, without remodeling.** `shares.role` is already a column, with
-an enum holding one value and a check constraint that fails closed. Adding an
-editor is the enum value and a wider constraint in a migration, `role` in the
-share selection, `grantFor` returning `via.role` instead of the literal
-`viewer`, and `requireOwner` becoming `requireRole` at the write sites an editor
-should pass. No new table, no re-keyed rows, and reads do not change at all,
-because a read already resolves the same grant and only ever asked whether one
-exists.
 
 **Large files, several at once.** The browser asks the API for a signed URL and
 uploads straight to storage. Bytes never pass through a function, so no request
@@ -302,6 +331,16 @@ the same as opaque: the first 48 bits of a v7 are a timestamp, so an id tells it
 holder when the thing was created. For a room that is fine; if it stopped being
 fine the answer is a separate public identifier, not a different primary key.
 
+**A second upload under a taken name goes beside the first, not on top of it.**
+The file keeps its id, so every share and every link that pointed at the document
+still points at it and now serves the new bytes; the old bytes keep their own
+object key and nothing is overwritten. Restoring an older version appends a new
+one pointing at those bytes rather than winding the number down, because a
+restore is itself something that happened and a history that can go backwards is
+not a history. The list is the owner's alone: a reader can read the document, but
+that it was re-issued on the fourteenth is a disclosure the seller makes, not one
+the room makes for them.
+
 **A node you may not see answers 404, not 403.** A 403 would confirm that a
 folder with that id exists, which is exactly what a shared out data room must not
 leak.
@@ -325,7 +364,7 @@ someone was invited into, because those totals describe parts they cannot see.
   you open any of them; it does not say what changed between two. For PDFs that
   is a rendering problem rather than a data one, and counsel compares in Acrobat.
 - **Roles beyond viewer.** Everything shared here is read only. The column and
-  the constraint are in place; what an editor would cost is in
+  the enum are in place; what an editor would cost is in
   [How it scales](#how-it-scales).
 - **Holding one document back from a shared folder.** A share reaches everything
   inside it and there is no exclusion anywhere in the model, which is why there
