@@ -148,7 +148,7 @@ export function Browser() {
             : 'rounded-lg outline-2 outline-offset-4 outline-transparent'
         }
       >
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <h1 className="flex-1 truncate text-[22px] font-semibold tracking-[-0.02em]">
             {folder.name}
           </h1>

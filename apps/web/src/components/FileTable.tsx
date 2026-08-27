@@ -48,62 +48,66 @@ export function FileTable({ rows, onOpen, actions }: Props) {
   const showAccess = rows.some((row) => row.access?.direct)
 
   return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr>
-          <Th className="w-full">Name</Th>
-          {showAccess && <Th>Access</Th>}
-          <Th className="text-right">Size</Th>
-          <Th className="text-right">Modified</Th>
-          {actions && <Th aria-label="Actions" />}
-        </tr>
-      </thead>
-
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.id} className="group border-b border-hairline last:border-b-0 hover:bg-sunken">
-            <td
-              className={cn(
-                'px-4 py-[13px]',
-                // The signature: a row whose access was granted somewhere above it
-                // carries the rail, so inherited reach is visible without opening
-                // anything.
-                row.access?.inherited &&
-                  "relative before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-primary before:content-['']",
-              )}
-            >
-              <button
-                onClick={() => onOpen(row)}
-                className="flex w-full items-center gap-2.5 text-left"
-              >
-                <RowIcon row={row} />
-                <span className="truncate">{row.name}</span>
-              </button>
-            </td>
-
-            {showAccess && (
-              <td className="px-4 py-[13px] whitespace-nowrap">
-                {row.access && <AccessChips access={row.access} />}
-              </td>
-            )}
-
-            <td className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted">
-              {row.kind === 'file' ? formatBytes(row.sizeBytes) : ''}
-            </td>
-
-            <td className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted">
-              {formatWhen(row.updatedAt)}
-            </td>
-
-            {actions && (
-              <td className="py-[13px] pr-3 pl-0">
-                <RowMenu row={row} actions={actions} />
-              </td>
-            )}
+    // The columns have a floor below which they crush rather than reflow, so on a
+    // narrow screen the table scrolls sideways and the page does not.
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[540px] border-collapse">
+        <thead>
+          <tr>
+            <Th className="w-full">Name</Th>
+            {showAccess && <Th>Access</Th>}
+            <Th className="text-right">Size</Th>
+            <Th className="text-right">Modified</Th>
+            {actions && <Th aria-label="Actions" />}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="group border-b border-hairline last:border-b-0 hover:bg-sunken">
+              <td
+                className={cn(
+                  'px-4 py-[13px]',
+                  // The signature: a row whose access was granted somewhere above it
+                  // carries the rail, so inherited reach is visible without opening
+                  // anything.
+                  row.access?.inherited &&
+                    "relative before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-primary before:content-['']",
+                )}
+              >
+                <button
+                  onClick={() => onOpen(row)}
+                  className="flex w-full items-center gap-2.5 text-left"
+                >
+                  <RowIcon row={row} />
+                  <span className="truncate">{row.name}</span>
+                </button>
+              </td>
+
+              {showAccess && (
+                <td className="px-4 py-[13px] whitespace-nowrap">
+                  {row.access && <AccessChips access={row.access} />}
+                </td>
+              )}
+
+              <td className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted">
+                {row.kind === 'file' ? formatBytes(row.sizeBytes) : ''}
+              </td>
+
+              <td className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted">
+                {formatWhen(row.updatedAt)}
+              </td>
+
+              {actions && (
+                <td className="py-[13px] pr-3 pl-0">
+                  <RowMenu row={row} actions={actions} />
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
