@@ -168,10 +168,32 @@ reach a sibling branch. That leak is the reason the model exists.
 
 ## How it scales
 
+**The size and item count of a folder, including its whole subtree.** Two
+aggregates over one range, no recursion and nothing maintained in the background.
+`folders_path_idx` is a `text_pattern_ops` index, so `path LIKE '/room/legal/%'`
+becomes range bounds rather than a scan, and it still does when the prefix
+arrives as a parameter and Postgres has settled on a generic plan. The folder
+count is an index only scan over that range; the file count and the byte sum are
+one pass over the files hanging off it.
+
+Measured on a copy of this schema holding one room of 100,000 files in 91
+folders, with 27,000 folders and 172,000 files around it: the folder count takes
+0.2 ms, and the count and byte sum across all 100,000 files takes 48 ms. Under a
+single top level folder holding 10,000 of them it is 5 ms. This is the delete
+manifest, which is where those totals are actually spent, and it is asked for
+once when somebody opens the dialog.
+
+Rejected: a running total on each folder, maintained by trigger. That is the
+right answer the moment a total is drawn in a listing instead of in a dialog, and
+the 48 ms above is where the preference turns into a requirement. It is a
+migration and a trigger rather than a redesign, because the number it would cache
+is the number this query already returns.
+
 **A room with 100,000 files and a deep tree.** Listing one folder is an index
-scan on `(parent_id)` and `(folder_id)`; it does not care how large the room is.
-"Everything under this folder", which the delete manifest and the share sweep
-need, is one prefix scan.
+scan on `(parent_id)` and `(folder_id)`; it does not care how large the room is,
+only how many children that one folder has. "Everything under this folder", which
+the delete manifest and the share sweep need, is one prefix scan on the index
+above.
 
 Rejected: a plain adjacency list, where every listing walks the tree with a
 recursive CTE and gets slower as the tree deepens. Also rejected: a closure
@@ -206,6 +228,15 @@ makes drawing a folder cost rows multiplied by shares, which is a slow listing
 long before the queries are the problem. If a room ever did hold thousands of
 shares, the same answer comes from a `resource_path in (...)` over the listed
 rows.
+
+**Per-user roles, without remodeling.** `shares.role` is already a column, with
+an enum holding one value and a check constraint that fails closed. Adding an
+editor is the enum value and a wider constraint in a migration, `role` in the
+share selection, `grantFor` returning `via.role` instead of the literal
+`viewer`, and `requireOwner` becoming `requireRole` at the write sites an editor
+should pass. No new table, no re-keyed rows, and reads do not change at all,
+because a read already resolves the same grant and only ever asked whether one
+exists.
 
 **Large files, several at once.** The browser asks the API for a signed URL and
 uploads straight to storage. Bytes never pass through a function, so no request
@@ -279,9 +310,9 @@ someone was invited into, because those totals describe parts they cannot see.
 
 ## Not built, on purpose
 
-- **Roles beyond viewer.** The enum has one value and a check constraint that
-  fails closed, so adding an editor is a migration and one branch rather than a
-  rewrite of the access rules.
+- **Roles beyond viewer.** Everything shared here is read only. The column and
+  the constraint are in place; what an editor would cost is in
+  [How it scales](#how-it-scales).
 - **Holding one document back from a shared folder.** A share reaches everything
   inside it and there is no exclusion anywhere in the model, which is why there
   is nothing to forget. It costs something real: in every legal folder there is
