@@ -12,6 +12,8 @@ export interface LiveShare {
   resourcePath: string | null
   mode: ShareMode
   granteeUserId: string | null
+  /** Kept alongside the id so a share made before the person signed up still counts. */
+  granteeEmail: string | null
 }
 
 export type Target =
@@ -62,6 +64,21 @@ export function pickGrantingShare(target: Target, shares: LiveShare[]): LiveShar
   return covering.reduce((closest, share) =>
     (share.resourcePath ?? '').length > (closest.resourcePath ?? '').length ? share : closest,
   )
+}
+
+/**
+ * Who a set of shares reaches, counted once each. The same person invited at two
+ * levels is one person, and an invitation sent before they signed up is the same
+ * person as the account that later claimed it.
+ */
+export function granteesOf(shares: LiveShare[]): number {
+  const people = new Set<string>()
+  for (const share of shares) {
+    if (share.mode !== 'user') continue
+    const who = share.granteeUserId ?? share.granteeEmail
+    if (who) people.add(who)
+  }
+  return people.size
 }
 
 /**

@@ -2,6 +2,7 @@ import type { DataRoom, File, Folder, Share } from '@prisma/client'
 import { prisma } from './db.js'
 import { notFound, readOnly, shareRevoked } from './errors.js'
 import {
+  granteesOf,
   isInherited,
   lookupKeys,
   pickGrantingShare,
@@ -28,6 +29,7 @@ const LIVE_SHARE = {
   resourcePath: true,
   mode: true,
   granteeUserId: true,
+  granteeEmail: true,
 } as const
 
 export const folderTarget = (folder: Folder): Target => ({
@@ -49,6 +51,7 @@ export const toLiveShare = (share: Share): LiveShare => ({
   resourcePath: share.resourcePath,
   mode: share.mode,
   granteeUserId: share.granteeUserId,
+  granteeEmail: share.granteeEmail,
 })
 
 /**
@@ -192,9 +195,7 @@ export function badgeFor(target: Target, shares: LiveShare[]): AccessBadge {
   const closest = pickGrantingShare(target, covering)
 
   return {
-    people: new Set(
-      covering.filter((share) => share.mode === 'user').map((share) => share.id),
-    ).size,
+    people: granteesOf(covering),
     link: covering.some((share) => share.mode === 'public_link'),
     direct: covering.some((share) => !isInherited(target, share)),
     inherited: covering.some((share) => isInherited(target, share)),

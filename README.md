@@ -61,7 +61,7 @@ Checks:
 
 ```bash
 npm run typecheck --workspaces      # api and web
-npm run test --workspaces           # 39 unit tests over the path and access rules
+npm run test --workspaces           # 42 unit tests over the path and access rules
 npm run smoke --workspace @dataroom/api   # end to end against the real database and bucket
 ```
 

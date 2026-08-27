@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { isInherited, lookupKeys, pickGrantingShare, shareCovers, type LiveShare, type Target } from './access.js'
+import {
+  granteesOf,
+  isInherited,
+  lookupKeys,
+  pickGrantingShare,
+  shareCovers,
+  type LiveShare,
+  type Target,
+} from './access.js'
 
 const ROOM = 'r0000000-0000-7000-8000-000000000001'
 const FINANCIALS = 'f0000000-0000-7000-8000-000000000002'
@@ -23,6 +31,7 @@ function folderShare(path: string, over: 'data_room' | 'folder' = 'folder'): Liv
     resourcePath: path,
     mode: 'public_link',
     granteeUserId: null,
+    granteeEmail: null,
   }
 }
 
@@ -34,6 +43,7 @@ function fileShare(fileId: string): LiveShare {
     resourcePath: null,
     mode: 'user',
     granteeUserId: 'someone',
+    granteeEmail: 'someone@example.com',
   }
 }
 
@@ -129,5 +139,37 @@ describe('isInherited', () => {
 
   it('is false for a file shared on its own', () => {
     expect(isInherited(capTable, fileShare(CAP_TABLE))).toBe(false)
+  })
+})
+
+describe('granteesOf', () => {
+  const invite = (id: string, userId: string | null, email: string | null): LiveShare => ({
+    id,
+    resourceType: 'folder',
+    resourceId: 'folder',
+    resourcePath: financialsPath,
+    mode: 'user',
+    granteeUserId: userId,
+    granteeEmail: email,
+  })
+
+  it('ignores public links', () => {
+    expect(granteesOf([folderShare(financialsPath)])).toBe(0)
+  })
+
+  it('counts each person once, however many shares reach them', () => {
+    const shares = [
+      invite('a', 'user-1', 'ana@example.com'),
+      invite('b', 'user-1', 'ana@example.com'),
+      invite('c', 'user-2', 'bo@example.com'),
+    ]
+    expect(granteesOf(shares)).toBe(2)
+  })
+
+  // An invitation sent before someone signed up carries only an email. Once they
+  // do, the same row carries their id, and it must not become a second person.
+  it('treats a claimed invitation as the account that claimed it', () => {
+    expect(granteesOf([invite('a', null, 'ana@example.com')])).toBe(1)
+    expect(granteesOf([invite('a', 'user-1', 'ana@example.com')])).toBe(1)
   })
 })
