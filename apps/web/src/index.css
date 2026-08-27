@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * The token set from docs/design/style-reference.html. That page is the source of
+ * truth for the look; this file is the only place it is translated into code, so
+ * a change there is a change in one place here.
+ */
+:root {
+  --canvas: #f6f5f4;
+  --surface: #ffffff;
+  --sunken: #efedeb;
+  --hairline: #e6e6e6;
+  --hairline-strong: #d4d2cf;
+
+  --ink: #191817;
+  --ink-secondary: #31302e;
+  --ink-muted: #615d59;
+  --ink-faint: #a39e98;
+
+  --primary: #0075de;
+  --primary-active: #005bab;
+  --primary-wash: #eaf4fd;
+  --secondary: #213183;
+  --secondary-wash: #eceef7;
+  --on-primary: #ffffff;
+
+  --danger: #c0392b;
+  --danger-wash: #fdeeec;
+  --success: #15803d;
+  --warning: #b45309;
+
+  --shadow-soft:
+    0 0.175px 1.04px rgb(0 0 0 / 0.01), 0 0.8px 2.9px rgb(0 0 0 / 0.02),
+    0 2px 7.8px rgb(0 0 0 / 0.027), 0 4px 18px rgb(0 0 0 / 0.04);
+}
+
+.dark {
+  --canvas: #191919;
+  --surface: #262626;
+  --sunken: #212121;
+  --hairline: #343434;
+  --hairline-strong: #454545;
+
+  --ink: #ededed;
+  --ink-secondary: #cfcdca;
+  --ink-muted: #9a958f;
+  --ink-faint: #6f6a64;
+
+  --primary: #2f8fef;
+  --primary-active: #1f7ad6;
+  --primary-wash: #16293c;
+  --secondary: #8aa0ff;
+  --secondary-wash: #23273d;
+
+  --danger: #f87171;
+  --danger-wash: #3a2020;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  --shadow-soft:
+    0 0.8px 2.9px rgb(0 0 0 / 0.18), 0 2px 7.8px rgb(0 0 0 / 0.22),
+    0 4px 18px rgb(0 0 0 / 0.28);
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-primary: var(--primary);
+  --color-primary-active: var(--primary-active);
+  --color-primary-wash: var(--primary-wash);
+  --color-secondary: var(--secondary);
+  --color-secondary-wash: var(--secondary-wash);
+  --color-on-primary: var(--on-primary);
+
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* The names the shadcn primitives reach for, pointed at the tokens above. */
+  --color-background: var(--canvas);
+  --color-foreground: var(--ink);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink);
+  --color-muted: var(--sunken);
+  --color-muted-foreground: var(--ink-muted);
+  --color-accent: var(--sunken);
+  --color-accent-foreground: var(--ink);
+  --color-border: var(--hairline);
+  --color-input: var(--hairline-strong);
+  --color-ring: var(--primary);
+  --color-destructive: var(--danger);
+
+  --radius-xs: 4px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-soft: var(--shadow-soft);
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial,
+    sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--hairline);
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  .dark html,
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.33;
+    font-feature-settings: 'lnum' 1, 'locl' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  /* One focus treatment everywhere, rather than each control inventing its own. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}

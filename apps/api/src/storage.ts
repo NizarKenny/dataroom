@@ -53,6 +53,12 @@ export async function describeObject(key: string) {
   return { sizeBytes: data.size, mimeType: data.contentType ?? 'application/octet-stream' }
 }
 
+/** Used by the seed, which has the bytes in hand and no browser to sign for. */
+export async function putObject(key: string, body: Buffer, mimeType: string): Promise<void> {
+  const { error } = await bucket().upload(key, body, { contentType: mimeType, upsert: true })
+  if (error) throw new Error(`Could not upload ${key}: ${error.message}`)
+}
+
 export async function removeObjects(keys: string[]): Promise<void> {
   if (keys.length === 0) return
   const { error } = await bucket().remove(keys)

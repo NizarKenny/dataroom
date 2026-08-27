@@ -39,6 +39,9 @@ export async function folderView(viewer: Viewer, folderId: string) {
       id: folder.id,
       name: folder.name,
       parentId: grantedHere ? null : folder.parentId,
+      // Why everything in this listing is reachable. The browser says it once at
+      // the top instead of repeating it on every row.
+      access: shares ? badgeFor(folderTarget(folder), shares) : null,
     },
     breadcrumbs,
     folders: folders.map((child) => folderRow(child, shares)),

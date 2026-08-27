@@ -3,11 +3,33 @@ import { z } from 'zod'
 import { principalOf, viewerOf } from '../auth.js'
 import { newId, prisma } from '../db.js'
 import { cleanName } from '../domain/names.js'
-import { rootPath } from '../domain/path.js'
+import { rootPath, segments } from '../domain/path.js'
 import { openRoom, requireOwner } from '../permissions.js'
 import { listRoomObjects, removeObjects } from '../storage.js'
 
 const roomId = z.object({ id: z.uuid() })
+
+interface Invitation {
+  resourceId: string
+  resourcePath: string | null
+}
+
+/**
+ * The shallowest folder this reader was given, since that is the most of the room
+ * they can see at once. A share of a single file has no folder to open, so the
+ * room opens on the file itself.
+ */
+function entryFor(invitations: Invitation[]) {
+  const folders = invitations.filter((share) => share.resourcePath !== null)
+  if (folders.length === 0) {
+    return { kind: 'file' as const, id: invitations[0]?.resourceId ?? null }
+  }
+
+  const shallowest = folders.reduce((best, share) =>
+    (share.resourcePath ?? '').length < (best.resourcePath ?? '').length ? share : best,
+  )
+  return { kind: 'folder' as const, id: segments(shallowest.resourcePath ?? '').at(-1) ?? null }
+}
 const roomName = z.object({ name: z.string() })
 
 export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -16,8 +38,7 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
 
     const invitations = await prisma.share.findMany({
       where: { granteeUserId: userId, revokedAt: null },
-      select: { dataRoomId: true },
-      distinct: ['dataRoomId'],
+      select: { dataRoomId: true, resourceId: true, resourcePath: true },
     })
 
     const rooms = await prisma.dataRoom.findMany({
@@ -25,7 +46,10 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
         OR: [{ ownerId: userId }, { id: { in: invitations.map((row) => row.dataRoomId) } }],
       },
       orderBy: { name: 'asc' },
-      include: { _count: { select: { files: true } } },
+      include: {
+        _count: { select: { files: true } },
+        folders: { where: { parentId: null }, select: { id: true } },
+      },
     })
 
     const sizes = await prisma.file.groupBy({
@@ -41,6 +65,11 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
         id: room.id,
         name: room.name,
         role: owned ? 'owner' : 'viewer',
+        // Where opening this room lands. An owner starts at the root; a reader
+        // starts where they were let in, because the root would answer 404.
+        entry: owned
+          ? { kind: 'folder' as const, id: room.folders[0]?.id ?? null }
+          : entryFor(invitations.filter((share) => share.dataRoomId === room.id)),
         updatedAt: room.updatedAt,
         // Totals describe the whole room, and someone invited into one folder
         // must not learn how much sits outside it.
@@ -72,6 +101,24 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get('/rooms/:id', { schema: { params: roomId } }, async (request) => {
     const { room, root, grant } = await openRoom(viewerOf(request), request.params.id)
     return { id: room.id, name: room.name, role: grant.role, rootFolderId: root.id }
+  })
+
+  /**
+   * Every folder in the room, flat. The move dialog needs the whole tree to draw
+   * a destination, and a room's folder count is small enough that paging it would
+   * cost more than it saves.
+   */
+  app.get('/rooms/:id/folders', { schema: { params: roomId } }, async (request) => {
+    const { room, grant } = await openRoom(viewerOf(request), request.params.id)
+    requireOwner(grant)
+
+    const folders = await prisma.folder.findMany({
+      where: { dataRoomId: room.id },
+      select: { id: true, name: true, parentId: true, depth: true },
+      orderBy: [{ depth: 'asc' }, { name: 'asc' }],
+    })
+
+    return folders
   })
 
   app.patch('/rooms/:id', { schema: { params: roomId, body: roomName } }, async (request) => {

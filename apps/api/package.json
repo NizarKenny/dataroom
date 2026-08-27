@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "smoke": "tsx scripts/smoke.ts",
+    "seed": "tsx scripts/seed.ts",
     "migrate": "prisma migrate dev",
     "generate": "prisma generate"
   },
