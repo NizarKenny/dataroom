@@ -9,7 +9,9 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { api, type ResourceType, type Share } from '@/lib/api'
+import { d } from '@/lib/dictionary'
 import { initialsOf } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Copy, Link2, X } from 'lucide-react'
@@ -29,16 +31,16 @@ interface Props {
 }
 
 export function ShareDialog({ target, onOpenChange, onChanged }: Props) {
+  const t = useT()
+
   return (
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px]">
         {target && (
           <>
             <DialogHeader>
-              <DialogTitle className="truncate">Share {target.name}</DialogTitle>
-              <DialogDescription>
-                Anyone given access here can also see everything inside it.
-              </DialogDescription>
+              <DialogTitle className="truncate">{t(d.share.title(target.name))}</DialogTitle>
+              <DialogDescription>{t(d.share.lede)}</DialogDescription>
             </DialogHeader>
 
             <Body target={target} onChanged={onChanged} />
@@ -72,6 +74,7 @@ function Tab({
 }
 
 function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => void }) {
+  const t = useT()
   const queryClient = useQueryClient()
   const key = ['shares', target.type, target.id]
   const shares = useQuery({
@@ -102,7 +105,7 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
       refresh()
     },
     onError: (problem) =>
-      setError(problem instanceof Error ? problem.message : 'That did not work'),
+      setError(problem instanceof Error ? problem.message : t(d.common.didNotWork)),
   })
 
   const createLink = useMutation({
@@ -133,10 +136,11 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
   const tabs = (
     <div className="mt-4 flex gap-0.5 rounded-md bg-sunken p-0.5">
       <Tab on={tab === 'people'} onClick={() => setChosen('people')}>
-        People{people.length > 0 && ` · ${people.length}`}
+        {t(d.share.people)}
+        {people.length > 0 && ` · ${people.length}`}
       </Tab>
       <Tab on={tab === 'link'} onClick={() => setChosen('link')}>
-        Link{link ? ' · on' : ''}
+        {t(link ? d.share.linkOn : d.share.link)}
       </Tab>
     </div>
   )
@@ -157,12 +161,12 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
             <Input
               type="email"
               required
-              placeholder="name@company.com"
+              placeholder={t(d.share.emailPlaceholder)}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
             <Button type="submit" variant="primary" disabled={invite.isPending}>
-              Invite
+              {t(d.share.invite)}
             </Button>
           </form>
 
@@ -171,9 +175,7 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
           <div className="mt-4">
             {people.length === 0 && (
               <p className="py-2 text-[13px] text-ink-muted">
-                {link
-                  ? 'Nobody has been invited by name. A link to this is switched on.'
-                  : 'Nobody has been invited yet.'}
+                {t(link ? d.share.nobodyButLink : d.share.nobodyYet)}
               </p>
             )}
             {people.map((share) => (
@@ -208,11 +210,11 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
                 variant="secondary"
                 onClick={() => {
                   void navigator.clipboard.writeText(linkUrl(link.token))
-                  toast.success('Link copied')
+                  toast.success(t(d.share.copied))
                 }}
               >
                 <Copy />
-                Copy
+                {t(d.share.copy)}
               </Button>
             </div>
             <p className="mt-2 text-[13px] text-ink-muted">
@@ -257,7 +259,8 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
 }
 
 function Grantee({ share, onRevoke }: { share: Share; onRevoke: () => void }) {
-  const email = share.email ?? 'Unknown'
+  const t = useT()
+  const email = share.email ?? t(d.share.unknown)
 
   return (
     <div className="flex items-center gap-2.5 border-b border-hairline py-2 text-sm last:border-b-0">
@@ -268,18 +271,21 @@ function Grantee({ share, onRevoke }: { share: Share; onRevoke: () => void }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate">{email}</span>
         {share.inherited && (
-          <small className="block text-xs text-ink-faint">
-            Given access on a folder above this one
-          </small>
+          <small className="block text-xs text-ink-faint">{t(d.share.givenAbove)}</small>
         )}
       </span>
 
       {/* Revoking an inherited share would cut off a whole branch, so it is done
           where it was granted, not here. */}
       {share.inherited ? (
-        <span className="text-xs text-ink-faint">Inherited</span>
+        <span className="text-xs text-ink-faint">{t(d.share.inherited)}</span>
       ) : (
-        <Button variant="utility" size="icon" onClick={onRevoke} aria-label={`Remove ${email}`}>
+        <Button
+          variant="utility"
+          size="icon"
+          onClick={onRevoke}
+          aria-label={t(d.share.remove(email))}
+        >
           <X />
         </Button>
       )}

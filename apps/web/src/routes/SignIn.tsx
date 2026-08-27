@@ -1,11 +1,14 @@
 import { signIn, signUp, useSession } from '@/auth/session'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { Label } from '@/components/ui/label'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
 export function SignIn() {
+  const t = useT()
   const session = useSession()
   const location = useLocation()
   const [mode, setMode] = useState<'in' | 'up'>('in')
@@ -26,7 +29,7 @@ export function SignIn() {
     try {
       await (mode === 'in' ? signIn(email, password) : signUp(email, password))
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'That did not work')
+      setError(problem instanceof Error ? problem.message : t(d.common.didNotWork))
     } finally {
       setBusy(false)
     }
@@ -37,15 +40,13 @@ export function SignIn() {
       <div className="w-full max-w-[360px]">
         <h1 className="text-[40px] leading-[1.1] font-bold tracking-[-1px]">Data Room</h1>
         <p className="mt-2 text-ink-muted">
-          {mode === 'in'
-            ? 'Sign in to reach the rooms shared with you.'
-            : 'Create an account to open your first data room.'}
+          {t(mode === 'in' ? d.signIn.signInLede : d.signIn.createLede)}
         </p>
 
         <form onSubmit={submit} className="mt-7 space-y-4">
           <div>
             <Label htmlFor="email" className="mb-1.5 text-ink-secondary">
-              Email
+              {t(d.signIn.email)}
             </Label>
             <Input
               id="email"
@@ -59,7 +60,7 @@ export function SignIn() {
 
           <div>
             <Label htmlFor="password" className="mb-1.5 text-ink-secondary">
-              Password
+              {t(d.signIn.password)}
             </Label>
             <Input
               id="password"
@@ -71,19 +72,21 @@ export function SignIn() {
               onChange={(event) => setPassword(event.target.value)}
             />
             {mode === 'up' && (
-              <p className="mt-1.5 text-[13px] text-ink-muted">At least 8 characters.</p>
+              <p className="mt-1.5 text-[13px] text-ink-muted">{t(d.signIn.passwordHint)}</p>
             )}
           </div>
 
           {error && <p className="text-[13px] text-danger">{error}</p>}
 
           <Button type="submit" variant="primary" disabled={busy} className="w-full">
-            {busy ? 'One moment' : mode === 'in' ? 'Sign in' : 'Create account'}
+            {t(
+              busy ? d.common.oneMoment : mode === 'in' ? d.signIn.signIn : d.signIn.createAccount,
+            )}
           </Button>
         </form>
 
         <p className="mt-5 text-[13px] text-ink-muted">
-          {mode === 'in' ? 'No account yet?' : 'Already have an account?'}{' '}
+          {t(mode === 'in' ? d.signIn.noAccount : d.signIn.haveAccount)}{' '}
           <button
             type="button"
             className="text-primary underline underline-offset-2"
@@ -92,7 +95,7 @@ export function SignIn() {
               setError(null)
             }}
           >
-            {mode === 'in' ? 'Create one' : 'Sign in'}
+            {t(mode === 'in' ? d.signIn.createOne : d.signIn.signIn)}
           </button>
         </p>
       </div>

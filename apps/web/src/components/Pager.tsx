@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { pageWindow, windowFor } from '@/lib/pager'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -16,6 +18,7 @@ interface Props {
  * an end: with three pages or fewer they never wake up at all.
  */
 export function Pager({ page, pages, onGoTo }: Props) {
+  const t = useT()
   const [start, setStart] = useState(() => windowFor(page, pages))
 
   // A page can arrive from somewhere other than these buttons: a link carrying
@@ -31,10 +34,14 @@ export function Pager({ page, pages, onGoTo }: Props) {
 
   return (
     <nav
-      aria-label="Pages"
+      aria-label={t(d.pager.label)}
       className="flex items-center justify-center gap-1 border-t border-hairline px-4 py-3"
     >
-      <Arrow label="Earlier pages" disabled={!canGoBack} onClick={() => setStart((n) => n - 1)}>
+      <Arrow
+        label={t(d.pager.earlier)}
+        disabled={!canGoBack}
+        onClick={() => setStart((n) => n - 1)}
+      >
         <ChevronLeft />
       </Arrow>
 
@@ -43,7 +50,7 @@ export function Pager({ page, pages, onGoTo }: Props) {
           key={number}
           variant="utility"
           size="icon"
-          aria-label={`Page ${number}`}
+          aria-label={t(d.pager.page(number))}
           aria-current={number === page ? 'page' : undefined}
           onClick={() => onGoTo(number)}
           className={cn('tabular', number === page && 'bg-sunken font-semibold text-ink')}
@@ -52,7 +59,11 @@ export function Pager({ page, pages, onGoTo }: Props) {
         </Button>
       ))}
 
-      <Arrow label="Later pages" disabled={!canGoForward} onClick={() => setStart((n) => n + 1)}>
+      <Arrow
+        label={t(d.pager.later)}
+        disabled={!canGoForward}
+        onClick={() => setStart((n) => n + 1)}
+      >
         <ChevronRight />
       </Arrow>
     </nav>

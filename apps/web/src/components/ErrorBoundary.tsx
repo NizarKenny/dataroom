@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { d } from '@/lib/dictionary'
+import { say } from '@/lib/i18n'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 interface State {
@@ -26,12 +28,12 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     return (
       <div className="grid min-h-dvh place-items-center bg-canvas px-6 text-center">
         <div>
-          <h1 className="text-xl font-semibold">Something went wrong</h1>
+          <h1 className="text-xl font-semibold">{say(d.common.wentWrong)}</h1>
           <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
-            The page could not be drawn. Reloading usually clears it.
+            {say(d.common.couldNotDraw)}
           </p>
           <Button variant="primary" onClick={() => window.location.reload()}>
-            Reload
+            {say(d.common.reload)}
           </Button>
         </div>
       </div>

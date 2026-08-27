@@ -588,6 +588,40 @@ tr.inherited td:first-child::before {
   </section>
 
   <section>
+    <p class="eyebrow">Breakpoints</p>
+    <p class="note">Tailwind's own scale, unchanged, because inventing a second one only
+      means two numbers to remember. Only <b>sm</b> does real work here: it is where a phone
+      stops being a phone. The rest are the container's to use.</p>
+
+    <div class="swatches" style="grid-template-columns:repeat(5,1fr)">
+      <div class="sw"><div class="meta"><div class="name">sm</div><div class="hex">640px</div></div></div>
+      <div class="sw"><div class="meta"><div class="name">md</div><div class="hex">768px</div></div></div>
+      <div class="sw"><div class="meta"><div class="name">lg</div><div class="hex">1024px</div></div></div>
+      <div class="sw"><div class="meta"><div class="name">xl</div><div class="hex">1280px</div></div></div>
+      <div class="sw"><div class="meta"><div class="name">2xl</div><div class="hex">1536px</div></div></div>
+    </div>
+
+    <p class="note" style="margin-top:var(--s-md)">What changes, and the rule under each:</p>
+    <ul class="note" style="margin:var(--s-xs) 0 0;padding-left:1.1em;line-height:1.7">
+      <li><b>The page never scrolls sideways.</b> A table too wide for the screen scrolls
+        inside its own box, so the header and the pager stay where they were put. The table
+        has a floor of 540px: below that the columns would crush rather than reflow, and a
+        crushed column is a column nobody can read.</li>
+      <li><b>Below sm the toolbar breaks in two.</b> The folder name keeps its own line,
+        and the search field with the date filter take the next one. They share it because
+        one narrows the list and the other searches beyond it, and a phone has room for one
+        row of controls, not three.</li>
+      <li><b>Below sm the buttons that act on a room lose their words.</b> Measured: the
+        three of them want 357px and a 390px phone has 358 to give. An icon with a label
+        underneath is not a toolbar, it is a second toolbar.</li>
+      <li><b>Nothing in the top bar wraps.</b> The room's name is the only thing there
+        allowed to give up space, and it gives it up by truncating.</li>
+      <li><b>Padding steps down once</b>, 24px to 16px, at the same breakpoint. One step,
+        because two would be a system nobody can hold in their head.</li>
+    </ul>
+  </section>
+
+  <section>
     <p class="eyebrow">Dark</p>
     <div class="dark theme-dark">
       <div class="swatches" style="margin-bottom:var(--s-lg);grid-template-columns:repeat(4,1fr)">

@@ -1,4 +1,6 @@
 import { Input } from '@/components/ui/input'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { Search, X } from 'lucide-react'
 
 interface Props {
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export function SearchField({ value, onChange, placeholder }: Props) {
+  const t = useT()
+
   return (
     <div className="relative w-full sm:w-64">
       <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-ink-faint" />
@@ -26,7 +30,7 @@ export function SearchField({ value, onChange, placeholder }: Props) {
       {value && (
         <button
           type="button"
-          aria-label="Clear the search"
+          aria-label={t(d.browser.clearSearch)}
           onClick={() => onChange('')}
           className="absolute top-1/2 right-2 -translate-y-1/2 text-ink-faint hover:text-ink"
         >

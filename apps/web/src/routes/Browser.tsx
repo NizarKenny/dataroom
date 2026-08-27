@@ -18,6 +18,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError, type Modified } from '@/lib/api'
 import { useDebounced } from '@/lib/useDebounced'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { useUploads } from '@/uploads/queue'
 import { UploadPanel } from '@/uploads/UploadPanel'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -27,6 +29,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 export function Browser() {
+  const t = useT()
   const { folderId = '' } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -114,7 +117,7 @@ export function Browser() {
     onSuccess: () => {
       refresh()
       void queryClient.invalidateQueries({ queryKey: ['room-folders'] })
-      toast.success('Moved')
+      toast.success(t(d.browser.moved))
     },
   })
 
@@ -127,7 +130,7 @@ export function Browser() {
       toast.success(`${row.name} deleted`)
     },
     onError: (problem) =>
-      toast.error(problem instanceof Error ? problem.message : 'That could not be deleted'),
+      toast.error(problem instanceof Error ? problem.message : t(d.browser.deleteFailed)),
   })
 
   if (view.isPending) return <Loading />
@@ -138,15 +141,13 @@ export function Browser() {
       <Shell>
         <div className="rounded-lg border border-hairline bg-surface px-6 py-13 text-center">
           <h2 className="text-xl font-semibold">
-            {missing ? 'This folder is not here' : 'Something went wrong'}
+            {t(missing ? d.browser.notHere : d.common.wentWrong)}
           </h2>
           <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
-            {missing
-              ? 'It may have been deleted, or your access to it may have been turned off.'
-              : 'The folder could not be loaded. Try again in a moment.'}
+            {t(missing ? d.browser.notHereLede : d.browser.loadFailed)}
           </p>
           <Button variant="secondary" onClick={() => navigate('/')}>
-            Back to the data rooms
+            {t(d.browser.backToRooms)}
           </Button>
         </div>
       </Shell>
@@ -205,36 +206,52 @@ export function Browser() {
       >
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <UpButton
-            to={parent?.name ?? 'the data rooms'}
+            to={parent?.name ?? t(d.browser.theDataRooms)}
             onClick={() => navigate(parent ? `/f/${parent.id}` : '/')}
           />
           <h1 className="min-w-0 flex-1 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
             {folder.name}
           </h1>
 
-          <SearchField value={query} onChange={setQuery} placeholder="Search this data room" />
+          {/* Full width below the small breakpoint, which drops the pair onto a
+              line of their own and leaves the folder name a line to be read on. */}
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <SearchField value={query} onChange={setQuery} placeholder={t(d.browser.search)} />
 
-          {/* Results are room wide and already sorted by name, so a window on
-              the modified date would be filtering something else. */}
-          {!searching && (
-            <ModifiedFilter
-              value={modified}
-              onChange={(next) => setQueryParam('modified', next, 'any')}
-            />
-          )}
+            {/* Results are room wide and already sorted by name, so a window on
+                the modified date would be filtering something else. */}
+            {!searching && (
+              <ModifiedFilter
+                value={modified}
+                onChange={(next) => setQueryParam('modified', next, 'any')}
+              />
+            )}
+          </div>
 
+          {/* Measured: the three labelled buttons want 357px and a 390px phone has
+              358 to give them. Below the small breakpoint they are their icons,
+              which is the difference between a toolbar and a second line of one. */}
           {owner && (
             <>
-              <Button variant="utility" onClick={() => setCreating(true)}>
+              <Button
+                variant="utility"
+                aria-label={t(d.browser.newFolder)}
+                onClick={() => setCreating(true)}
+              >
                 <FolderPlus />
-                New folder
+                <span className="hidden sm:inline">{t(d.browser.newFolder)}</span>
               </Button>
-              <Button variant="secondary" onClick={() => picker.current?.click()}>
+              <Button
+                variant="secondary"
+                aria-label={t(d.browser.uploadFiles)}
+                onClick={() => picker.current?.click()}
+              >
                 <Upload />
-                Upload
+                <span className="hidden sm:inline">{t(d.browser.upload)}</span>
               </Button>
               <Button
                 variant="primary"
+                aria-label={t(d.common.share)}
                 onClick={() =>
                   setSharing(
                     atRoot
@@ -244,7 +261,7 @@ export function Browser() {
                 }
               >
                 <Share2 />
-                Share
+                <span className="hidden sm:inline">{t(d.common.share)}</span>
               </Button>
             </>
           )}
@@ -300,7 +317,7 @@ export function Browser() {
                 // An empty folder and a folder hidden by a filter look identical,
                 // and only one of them is the reader's own doing.
                 <div className="px-6 py-13 text-center">
-                  <h2 className="text-xl font-semibold">Nothing changed that recently</h2>
+                  <h2 className="text-xl font-semibold">{t(d.browser.filteredEmpty)}</h2>
                   <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
                     This folder has {view.data.page.total === 0 ? 'things' : 'more'} in it, outside
                     the window you picked.
@@ -309,22 +326,20 @@ export function Browser() {
                     variant="secondary"
                     onClick={() => setQueryParam('modified', 'any', 'any')}
                   >
-                    Show everything
+                    {t(d.browser.showEverything)}
                   </Button>
                 </div>
               ) : rows.length === 0 ? (
                 <div className="px-6 py-13 text-center">
                   <h2 className="text-xl font-semibold">
-                    {owner ? 'Nothing in here yet' : 'This folder is empty'}
+                    {t(owner ? d.browser.emptyOwner : d.browser.emptyReader)}
                   </h2>
                   <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
-                    {owner
-                      ? 'Drop files anywhere on this page, or make a folder to sort them into.'
-                      : 'Nothing has been put in here yet.'}
+                    {t(owner ? d.browser.emptyOwnerLede : d.browser.emptyReaderLede)}
                   </p>
                   {owner && (
                     <Button variant="primary" onClick={() => picker.current?.click()}>
-                      Upload files
+                      {t(d.browser.uploadFiles)}
                     </Button>
                   )}
                 </div>
@@ -377,7 +392,7 @@ export function Browser() {
       <PromptDialog
         open={creating}
         onOpenChange={setCreating}
-        title="New folder"
+        title={t(d.browser.newFolderTitle)}
         label="Name"
         submitLabel="Create"
         onSubmit={async (name) => {
@@ -388,7 +403,7 @@ export function Browser() {
       <PromptDialog
         open={renaming !== null}
         onOpenChange={(open) => !open && setRenaming(null)}
-        title={`Rename ${renaming?.name ?? ''}`}
+        title={t(d.browser.renameTitle(renaming?.name ?? ''))}
         label="Name"
         submitLabel="Rename"
         initialValue={renaming?.name}
@@ -443,7 +458,7 @@ function Shell({ name, children }: { name?: string; children: React.ReactNode })
   return (
     <div className="min-h-dvh bg-canvas">
       <TopBar>{name && <span className="truncate text-[13px] text-ink-muted">{name}</span>}</TopBar>
-      <main className="mx-auto max-w-[1180px] px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">{children}</main>
     </div>
   )
 }

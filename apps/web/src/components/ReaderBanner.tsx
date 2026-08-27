@@ -1,3 +1,5 @@
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { Link2, Users } from 'lucide-react'
 
 interface Props {
@@ -13,6 +15,8 @@ interface Props {
  * and it is the first thing on their first screen.
  */
 export function ReaderBanner({ grantedAt, through }: Props) {
+  const t = useT()
+
   return (
     <div className="flex items-center gap-2 border-b border-hairline bg-primary-wash px-4 py-2.5 text-[13px] text-primary-active">
       {through === 'link' ? (
@@ -21,10 +25,8 @@ export function ReaderBanner({ grantedAt, through }: Props) {
         <Users className="size-3.5 shrink-0" />
       )}
       <span>
-        You can see <strong className="font-medium">{grantedAt}</strong> and everything inside it.{' '}
-        {through === 'link'
-          ? 'Anyone holding this link sees the same.'
-          : 'The rest of the data room is not shared with you.'}
+        {t(d.access.readerFolder(grantedAt))}{' '}
+        {t(through === 'link' ? d.access.readerRestLink : d.access.readerRestInvite)}
       </span>
     </div>
   )

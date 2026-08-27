@@ -1,4 +1,5 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { LanguageSwitch } from '@/components/LanguageSwitch'
 import { ModifiedFilter } from '@/components/ModifiedFilter'
 import { Pager } from '@/components/Pager'
 import { SearchField } from '@/components/SearchField'
@@ -11,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError, type Modified } from '@/lib/api'
 import { useDebounced } from '@/lib/useDebounced'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { formatBytes } from '@/lib/format'
 import { useTheme } from '@/theme'
 import { useQuery } from '@tanstack/react-query'
@@ -23,6 +26,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
  * column: the reader is being shown documents, not the room's guest list.
  */
 export function LinkView() {
+  const t = useT()
   const { token = '', folderId } = useParams()
   const navigate = useNavigate()
   const [previewing, setPreviewing] = useState<Row | null>(null)
@@ -89,16 +93,10 @@ export function LinkView() {
     const problem = opened.error instanceof ApiError ? opened.error : null
     const [heading, detail] =
       problem?.code === 'share_revoked'
-        ? [
-            'This link no longer works',
-            'Whoever shared it has turned it off. Ask them for a new one.',
-          ]
+        ? [t(d.link.revoked), t(d.link.revokedLede)]
         : problem?.status === 404
-          ? ['This link is not valid', 'Check that you copied the whole address.']
-          : [
-              'This link could not be opened',
-              'Something went wrong on our side. Try again in a moment.',
-            ]
+          ? [t(d.link.invalid), t(d.link.invalidLede)]
+          : [t(d.link.failed), t(d.link.failedLede)]
 
     return (
       <Shell shared={false}>
@@ -160,7 +158,7 @@ export function LinkView() {
   return (
     <Shell room={link.room.name}>
       {view.data && (
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           {/* Only inside the shared folder. At its top there is nowhere a link
               holder is allowed to go, so there is no button offering it. */}
           {parent && (
@@ -170,14 +168,20 @@ export function LinkView() {
             {view.data.folder.name}
           </h1>
 
-          <SearchField value={query} onChange={setQuery} placeholder="Search what was shared" />
-
-          {!searching && (
-            <ModifiedFilter
-              value={modified}
-              onChange={(next) => setQueryParam('modified', next, 'any')}
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <SearchField
+              value={query}
+              onChange={setQuery}
+              placeholder={t(d.browser.searchShared)}
             />
-          )}
+
+            {!searching && (
+              <ModifiedFilter
+                value={modified}
+                onChange={(next) => setQueryParam('modified', next, 'any')}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -211,9 +215,9 @@ export function LinkView() {
 
             {view.data.folders.length + view.data.files.length === 0 ? (
               <div className="px-6 py-13 text-center">
-                <h2 className="text-xl font-semibold">This folder is empty</h2>
+                <h2 className="text-xl font-semibold">{t(d.browser.emptyReader)}</h2>
                 <p className="mx-auto mt-2 max-w-[42ch] text-ink-muted">
-                  Nothing has been put in here yet.
+                  {t(d.browser.emptyReaderLede)}
                 </p>
               </div>
             ) : (
@@ -239,10 +243,7 @@ export function LinkView() {
         {view.isPending && <Skeleton className="m-4 h-24" />}
 
         {view.isError && (
-          <p className="px-6 py-13 text-center text-ink-muted">
-            This folder could not be loaded. The link may have been switched off while you were
-            reading.
-          </p>
+          <p className="px-6 py-13 text-center text-ink-muted">{t(d.link.folderFailed)}</p>
         )}
       </div>
 
@@ -265,17 +266,20 @@ function Shell({
   shared?: boolean
   children: React.ReactNode
 }) {
+  const t = useT()
   const { theme, toggle } = useTheme()
 
   return (
     <div className="min-h-dvh bg-canvas">
       <header className="border-b border-hairline">
-        <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-3 px-6">
-          <span className="font-semibold tracking-[-0.02em]">Data Room</span>
-          {room && <span className="truncate text-[13px] text-ink-muted">{room}</span>}
+        <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-3 px-4 sm:px-6">
+          <span className="shrink-0 font-semibold tracking-[-0.02em] whitespace-nowrap">
+            Data Room
+          </span>
+          {room && <span className="min-w-0 truncate text-[13px] text-ink-muted">{room}</span>}
 
           {shared && (
-            <span className="ml-auto flex items-center gap-1.5 rounded-full bg-primary-wash px-2.5 py-[3px] text-xs font-semibold text-primary-active">
+            <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-primary-wash px-2.5 py-[3px] text-xs font-semibold whitespace-nowrap text-primary-active">
               <Link2 className="size-3.5" />
               Shared with you
             </span>
@@ -285,15 +289,17 @@ function Shell({
             variant="utility"
             size="icon"
             onClick={toggle}
-            aria-label="Switch theme"
+            aria-label={t(theme === 'dark' ? d.theme.toLight : d.theme.toDark)}
             className={shared ? undefined : 'ml-auto'}
           >
             {theme === 'dark' ? <Sun /> : <Moon />}
           </Button>
+
+          <LanguageSwitch />
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1180px] px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">{children}</main>
     </div>
   )
 }

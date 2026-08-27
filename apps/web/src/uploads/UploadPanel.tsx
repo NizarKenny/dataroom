@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -7,6 +9,8 @@ import type { useUploads } from './queue'
 export type UploadQueue = ReturnType<typeof useUploads>
 
 export function UploadPanel({ queue }: { queue: UploadQueue }) {
+  const t = useT()
+
   if (queue.items.length === 0) return null
 
   const done = queue.items.filter((item) => item.status === 'done').length
@@ -18,14 +22,14 @@ export function UploadPanel({ queue }: { queue: UploadQueue }) {
       <div className="flex items-center gap-2 border-b border-hairline px-4 py-2.5 text-[13px] font-medium">
         <span className="flex-1">
           {asking > 0
-            ? `${asking} ${asking === 1 ? 'file needs' : 'files need'} a decision`
+            ? t(d.upload.needsDecision(asking))
             : failed > 0
-              ? `${failed} ${failed === 1 ? 'file' : 'files'} did not go through`
+              ? t(d.upload.failedCount(failed))
               : done === queue.items.length
-                ? `${done} ${done === 1 ? 'file' : 'files'} uploaded`
-                : `Uploading ${done + 1} of ${queue.items.length}`}
+                ? t(d.upload.uploaded(done))
+                : t(d.upload.uploading(done + 1, queue.items.length))}
         </span>
-        <Button variant="utility" size="icon" onClick={queue.clear} aria-label="Close">
+        <Button variant="utility" size="icon" onClick={queue.clear} aria-label={t(d.common.close)}>
           <X />
         </Button>
       </div>
@@ -36,7 +40,7 @@ export function UploadPanel({ queue }: { queue: UploadQueue }) {
             <div className="flex items-baseline gap-2 text-sm">
               <span className="flex-1 truncate">{item.name}</span>
               <span className="tabular text-xs text-ink-muted">
-                {item.status === 'done' ? 'Done' : `${Math.round(item.progress * 100)}%`}
+                {item.status === 'done' ? t(d.upload.done) : `${Math.round(item.progress * 100)}%`}
               </span>
             </div>
 
@@ -67,9 +71,13 @@ export function UploadPanel({ queue }: { queue: UploadQueue }) {
 
             {item.status === 'conflict' && (
               <div className="mt-2 flex gap-1.5">
-                <Choice onClick={() => queue.resolve(item.id, 'rename')}>Keep both</Choice>
-                <Choice onClick={() => queue.resolve(item.id, 'version')}>New version</Choice>
-                <Choice onClick={() => queue.resolve(item.id, 'skip')}>Skip</Choice>
+                <Choice onClick={() => queue.resolve(item.id, 'rename')}>
+                  {t(d.upload.keepBoth)}
+                </Choice>
+                <Choice onClick={() => queue.resolve(item.id, 'version')}>
+                  {t(d.upload.newVersion)}
+                </Choice>
+                <Choice onClick={() => queue.resolve(item.id, 'skip')}>{t(d.upload.skip)}</Choice>
               </div>
             )}
 

@@ -15,8 +15,7 @@ const button = cva(
     variants: {
       variant: {
         primary: 'rounded-full bg-primary text-on-primary hover:bg-primary-active',
-        secondary:
-          'rounded-full bg-surface text-ink border border-hairline-strong hover:bg-sunken',
+        secondary: 'rounded-full bg-surface text-ink border border-hairline-strong hover:bg-sunken',
         utility: 'rounded-md bg-transparent text-ink-secondary hover:bg-sunken',
         danger:
           'rounded-full bg-transparent text-danger border border-hairline-strong hover:bg-danger-wash hover:border-danger',

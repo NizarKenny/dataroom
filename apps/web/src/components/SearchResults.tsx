@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { SearchHit, SearchResults as Results } from '@/lib/api'
 import { formatBytes, formatWhen } from '@/lib/format'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { ChevronRight, FileText } from 'lucide-react'
 import { Fragment } from 'react'
 
@@ -20,6 +22,7 @@ interface Props {
  * the only thing that tells them apart.
  */
 export function SearchResults({ query, results, pending, onOpen, onGoToFolder }: Props) {
+  const t = useT()
   if (pending && !results) {
     return (
       <div className="space-y-2 p-4">
@@ -32,10 +35,8 @@ export function SearchResults({ query, results, pending, onOpen, onGoToFolder }:
   if (!results || results.files.length === 0) {
     return (
       <div className="px-6 py-13 text-center">
-        <h2 className="text-xl font-semibold">Nothing matches “{query}”</h2>
-        <p className="mx-auto mt-2 max-w-[42ch] text-ink-muted">
-          This looks at file names across everything you can see in this data room.
-        </p>
+        <h2 className="text-xl font-semibold">{t(d.search.nothing(query))}</h2>
+        <p className="mx-auto mt-2 max-w-[42ch] text-ink-muted">{t(d.search.nothingLede)}</p>
       </div>
     )
   }
@@ -79,7 +80,7 @@ export function SearchResults({ query, results, pending, onOpen, onGoToFolder }:
                 className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                 onClick={() => onGoToFolder(hit)}
               >
-                Go to folder
+                {t(d.search.goToFolder)}
               </Button>
             )}
           </div>
@@ -88,7 +89,7 @@ export function SearchResults({ query, results, pending, onOpen, onGoToFolder }:
 
       {results.truncated && (
         <p className="border-t border-hairline px-4 py-3 text-[13px] text-ink-faint">
-          The first {results.files.length} matches. Type more of the name to narrow it.
+          {t(d.search.truncated(results.files.length))}
         </p>
       )}
     </>

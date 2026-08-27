@@ -1,3 +1,5 @@
+import { d } from '@/lib/dictionary'
+import type { Phrase } from '@/lib/i18n'
 import { useSyncExternalStore } from 'react'
 
 export type ColumnId = 'access' | 'size' | 'modified'
@@ -6,11 +8,27 @@ export type ColumnId = 'access' | 'size' | 'modified'
  * The columns a reader can arrange. Name is not here because it is the row
  * itself, and the row menu is not here because it is anchored to the end.
  */
-export const COLUMNS: { id: ColumnId; label: string }[] = [
-  { id: 'access', label: 'Access' },
-  { id: 'size', label: 'Size' },
-  { id: 'modified', label: 'Modified' },
+export const COLUMNS: { id: ColumnId; label: Phrase }[] = [
+  { id: 'access', label: d.columns.access },
+  { id: 'size', label: d.common.size },
+  { id: 'modified', label: d.columns.modified },
 ]
+
+/**
+ * Where a dropped column lands. Which side of the target it takes depends on the
+ * direction of travel: rightwards lands after it, leftwards before it. Always
+ * inserting before instead means dragging the first column onto the second does
+ * nothing at all, because before the second is where it already was.
+ */
+export function orderAfterDrop(order: ColumnId[], id: ColumnId, target: ColumnId): ColumnId[] {
+  const from = order.indexOf(id)
+  const to = order.indexOf(target)
+  if (from < 0 || to < 0 || from === to) return order
+
+  const rest = order.filter((other) => other !== id)
+  const at = rest.indexOf(target) + (from < to ? 1 : 0)
+  return [...rest.slice(0, at), id, ...rest.slice(at)]
+}
 
 export interface Layout {
   order: ColumnId[]
@@ -78,12 +96,8 @@ export function useColumns() {
       })
     },
 
-    /** Moves a column to sit where another one is, which is what a drop means. */
-    moveTo(id: ColumnId, before: ColumnId) {
-      if (id === before) return
-      const rest = current.order.filter((other) => other !== id)
-      const at = rest.indexOf(before)
-      write({ ...current, order: [...rest.slice(0, at), id, ...rest.slice(at)] })
+    moveTo(id: ColumnId, target: ColumnId) {
+      write({ ...current, order: orderAfterDrop(current.order, id, target) })
     },
 
     /** The same move one step at a time, for anyone not using a mouse. */

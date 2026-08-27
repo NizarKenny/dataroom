@@ -8,7 +8,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { ColumnsMenu } from '@/components/ColumnsMenu'
 import type { AccessBadge, FileRow, FolderRow } from '@/lib/api'
-import { useColumns, type ColumnId } from '@/lib/columns'
+import { COLUMNS, useColumns, type ColumnId } from '@/lib/columns'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { formatBytes, formatWhen } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import {
@@ -25,12 +27,6 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
-
-const LABELS: Record<ColumnId, string> = {
-  access: 'Access',
-  size: 'Size',
-  modified: 'Modified',
-}
 
 export type Row = ({ kind: 'folder' } & FolderRow) | ({ kind: 'file' } & FileRow)
 
@@ -51,6 +47,7 @@ interface Props {
 }
 
 export function FileTable({ rows, onOpen, actions }: Props) {
+  const t = useT()
   const columns = useColumns()
   const [dragging, setDragging] = useState<ColumnId | null>(null)
   const [over, setOver] = useState<ColumnId | null>(null)
@@ -74,7 +71,7 @@ export function FileTable({ rows, onOpen, actions }: Props) {
       <table className="w-full min-w-[540px] border-collapse">
         <thead>
           <tr>
-            <Th className="w-full">Name</Th>
+            <Th className="w-full">{t(d.common.name)}</Th>
 
             {shown.map((id) => (
               <Th
@@ -91,20 +88,23 @@ export function FileTable({ rows, onOpen, actions }: Props) {
                 }}
                 onDragLeave={() => setOver((current) => (current === id ? null : current))}
                 onDrop={() => drop(id)}
+                // Every optional column hangs off the right edge, header and
+                // content together. Mixing a left aligned label with right
+                // aligned ones leaves gaps between the words that have nothing
+                // to do with the gaps between the columns.
                 className={cn(
-                  'cursor-grab select-none',
-                  id !== 'access' && 'text-right',
+                  'cursor-grab text-right select-none',
                   dragging === id && 'opacity-45',
                   over === id && dragging !== id && 'bg-primary-wash text-primary-active',
                 )}
               >
-                {LABELS[id]}
+                {t(COLUMNS.find((column) => column.id === id)!.label)}
               </Th>
             ))}
 
             {/* Arranging the columns is the reader's, not the owner's: a link
                 holder reads the same table and can want the same order. */}
-            <Th aria-label="Columns" className="pr-3 pl-0 text-right">
+            <Th aria-label={t(d.columns.arrange)} className="pr-3 pl-0 text-right">
               <ColumnsMenu />
             </Th>
           </tr>
@@ -137,7 +137,7 @@ export function FileTable({ rows, onOpen, actions }: Props) {
 
               {shown.map((id) =>
                 id === 'access' ? (
-                  <td key={id} className="px-4 py-[13px] whitespace-nowrap">
+                  <td key={id} className="px-4 py-[13px] text-right whitespace-nowrap">
                     {row.access && <AccessChips access={row.access} />}
                   </td>
                 ) : (
@@ -205,15 +205,19 @@ function RowIcon({ row }: { row: Row }) {
 const grantedHere = (access: AccessBadge) => access.here.people > 0 || access.here.link
 
 function AccessChips({ access }: { access: AccessBadge }) {
+  const t = useT()
+
   if (!grantedHere(access)) {
     return (
-      <Chip className="bg-sunken text-ink-muted">{access.inherited ? 'Inherited' : 'Private'}</Chip>
+      <Chip className="bg-sunken text-ink-muted">
+        {t(access.inherited ? d.columns.inherited : d.columns.private)}
+      </Chip>
     )
   }
 
   const { people, link } = access.here
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center justify-end gap-1.5">
       {link && (
         <Chip className="bg-primary-wash text-primary-active">
           <Dot />
@@ -223,7 +227,7 @@ function AccessChips({ access }: { access: AccessBadge }) {
       {people > 0 && (
         <Chip className="bg-secondary-wash text-secondary">
           <Dot />
-          {people} {people === 1 ? 'person' : 'people'}
+          {t(d.access.peopleCount(people))}
         </Chip>
       )}
     </span>
@@ -246,6 +250,8 @@ function Chip({ className, children }: { className?: string; children: React.Rea
 const Dot = () => <i className="size-[5px] rounded-full bg-current" />
 
 function RowMenu({ row, actions }: { row: Row; actions: RowActions }) {
+  const t = useT()
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -253,7 +259,7 @@ function RowMenu({ row, actions }: { row: Row; actions: RowActions }) {
           variant="utility"
           size="icon"
           className="text-ink-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
-          aria-label={`Actions for ${row.name}`}
+          aria-label={t(d.columns.actionsFor(row.name))}
         >
           <MoreHorizontal />
         </Button>
@@ -264,27 +270,29 @@ function RowMenu({ row, actions }: { row: Row; actions: RowActions }) {
           <>
             <DropdownMenuItem onSelect={() => actions.download(row)}>
               <Download />
-              Download
+              {t(d.common.download)}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => actions.history(row)}>
               <History />
-              History
+              {t(d.columns.history)}
             </DropdownMenuItem>
           </>
         )}
         <DropdownMenuItem onSelect={() => actions.share(row)}>
           <Share2 />
-          Share
+          {t(d.common.share)}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => actions.rename(row)}>
           <Pencil />
-          Rename
+          {t(d.common.rename)}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => actions.move(row)}>Move to</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => actions.move(row)}>
+          {t(d.columns.moveTo)}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={() => actions.remove(row)}>
           <Trash2 />
-          Delete
+          {t(d.common.delete)}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

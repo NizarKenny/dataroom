@@ -247,7 +247,8 @@ export const api = {
       resourceId: string
       mode: 'public_link' | 'user'
       email?: string
-    }) => request<{ id: string; token?: string; email?: string }>('/shares', { method: 'POST', body }),
+    }) =>
+      request<{ id: string; token?: string; email?: string }>('/shares', { method: 'POST', body }),
     revoke: (id: string) => request<void>(`/shares/${id}`, { method: 'DELETE' }),
   },
 

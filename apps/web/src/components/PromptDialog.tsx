@@ -8,6 +8,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { useEffect, useState, type FormEvent } from 'react'
 
 interface Props {
@@ -36,6 +38,7 @@ export function PromptDialog({
   initialValue = '',
   onSubmit,
 }: Props) {
+  const t = useT()
   const [value, setValue] = useState(initialValue)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -55,7 +58,7 @@ export function PromptDialog({
       await onSubmit(value.trim())
       onOpenChange(false)
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : 'That did not work')
+      setError(problem instanceof Error ? problem.message : t(d.common.didNotWork))
     } finally {
       setBusy(false)
     }

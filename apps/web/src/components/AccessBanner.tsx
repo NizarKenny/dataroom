@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button'
 import type { AccessBadge } from '@/lib/api'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { Users } from 'lucide-react'
 
 interface Props {
@@ -14,12 +16,13 @@ interface Props {
  * down the left of the table then only have to mean "this one too".
  */
 export function AccessBanner({ access, grantedAtName, onManage }: Props) {
+  const t = useT()
+
   const who: string[] = []
-  if (access.people > 0) {
-    who.push(`${access.people} ${access.people === 1 ? 'person' : 'people'}`)
-  }
-  if (access.link) who.push('anyone with the link')
+  if (access.people > 0) who.push(t(d.access.peopleCount(access.people)))
+  if (access.link) who.push(t(d.access.anyoneWithLink))
   if (who.length === 0) return null
+  const said = who.join(t(d.access.and))
 
   const grantedHere = access.here.people > 0 || access.here.link
 
@@ -28,10 +31,10 @@ export function AccessBanner({ access, grantedAtName, onManage }: Props) {
       <Users className="size-3.5 shrink-0" />
       <span className="flex-1">
         {grantedHere
-          ? `This folder is shared with ${who.join(' and ')}.`
+          ? t(d.access.sharedWith(said))
           : grantedAtName
-            ? `Everything here is visible to ${who.join(' and ')}, granted on ${grantedAtName}.`
-            : `Everything here is visible to ${who.join(' and ')}, granted on a folder above.`}
+            ? t(d.access.visibleToAt(said, grantedAtName))
+            : t(d.access.visibleToAbove(said))}
       </span>
       <Button
         variant="utility"
@@ -39,7 +42,7 @@ export function AccessBanner({ access, grantedAtName, onManage }: Props) {
         onClick={onManage}
         className="text-primary-active underline underline-offset-2"
       >
-        {grantedHere ? 'Manage' : 'See who'}
+        {t(grantedHere ? d.access.manage : d.access.seeWho)}
       </Button>
     </div>
   )

@@ -2,6 +2,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Row } from '@/components/FileTable'
 import { api } from '@/lib/api'
 import { formatBytes } from '@/lib/format'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { useQuery } from '@tanstack/react-query'
 
 interface Props {
@@ -16,6 +18,7 @@ interface Props {
  * asks second.
  */
 export function DeleteDialog({ row, onOpenChange, onConfirm }: Props) {
+  const t = useT()
   const manifest = useQuery({
     queryKey: ['manifest', row?.id],
     queryFn: () => api.folders.manifest(row!.id),
@@ -28,26 +31,22 @@ export function DeleteDialog({ row, onOpenChange, onConfirm }: Props) {
     <ConfirmDialog
       open
       onOpenChange={onOpenChange}
-      title={`Delete ${row.name}?`}
-      description={
-        row.kind === 'file'
-          ? 'The file and any link to it stop working. This cannot be undone.'
-          : 'Everything inside goes with it, and any link into it stops working. This cannot be undone.'
-      }
+      title={t(d.del.title(row.name))}
+      description={row.kind === 'file' ? t(d.del.fileLede) : t(d.del.folderLede)}
       manifest={
         row.kind === 'folder' && manifest.data
           ? [
-              { label: 'Folders', value: manifest.data.folders },
-              { label: 'Files', value: manifest.data.files },
-              { label: 'Size', value: formatBytes(manifest.data.bytes) },
-              { label: 'Shares that stop working', value: manifest.data.shares },
+              { label: t(d.common.folders), value: manifest.data.folders },
+              { label: t(d.common.files), value: manifest.data.files },
+              { label: t(d.common.size), value: formatBytes(manifest.data.bytes) },
+              { label: t(d.del.sharesThatStop), value: manifest.data.shares },
             ]
           : undefined
       }
       confirmLabel={
         row.kind === 'folder' && manifest.data
-          ? `Delete ${manifest.data.folders + manifest.data.files + 1} items`
-          : 'Delete'
+          ? t(d.del.deleteItems(manifest.data.folders + manifest.data.files + 1))
+          : t(d.common.delete)
       }
       onConfirm={() => onConfirm(row)}
     />

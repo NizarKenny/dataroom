@@ -1,4 +1,6 @@
 import { cn } from '@/lib/utils'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { ChevronRight } from 'lucide-react'
 import { Fragment } from 'react'
 
@@ -10,9 +12,11 @@ interface Props {
 }
 
 export function Breadcrumbs({ trail, onNavigate, granted = false }: Props) {
+  const t = useT()
+
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={t(d.browser.breadcrumb)}
       className="flex items-center gap-1.5 border-b border-hairline px-4 py-3 text-[13px] text-ink-muted"
     >
       {trail.map((crumb, index) => {

@@ -13,6 +13,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, type RoomSummary } from '@/lib/api'
 import { formatBytes, formatWhen } from '@/lib/format'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -20,6 +22,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 export function Rooms() {
+  const t = useT()
   const rooms = useQuery({ queryKey: ['rooms'], queryFn: api.rooms.list })
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -60,7 +63,7 @@ export function Rooms() {
       toast.success(`${room.name} deleted`)
     },
     onError: (problem) =>
-      toast.error(problem instanceof Error ? problem.message : 'That could not be deleted'),
+      toast.error(problem instanceof Error ? problem.message : t(d.browser.deleteFailed)),
   })
 
   async function openRoom(room: RoomSummary) {
@@ -86,8 +89,10 @@ export function Rooms() {
       <main className="mx-auto max-w-[1180px] px-6 py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">Data rooms</h1>
-            <p className="mt-1 text-ink-muted">Rooms you own, and rooms shared with you.</p>
+            <h1 className="text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
+              {t(d.rooms.title)}
+            </h1>
+            <p className="mt-1 text-ink-muted">{t(d.rooms.lede)}</p>
           </div>
           <Button variant="primary" onClick={() => setCreating(true)}>
             <Plus />
@@ -112,13 +117,13 @@ export function Rooms() {
 
           {rooms.data?.length === 0 && (
             <div className="px-6 py-13 text-center">
-              <h2 className="text-xl font-semibold">Nothing here yet</h2>
+              <h2 className="text-xl font-semibold">{t(d.rooms.empty)}</h2>
               <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
-                A data room holds the documents for one deal, and decides who can see which parts
-                of them.
+                A data room holds the documents for one deal, and decides who can see which parts of
+                them.
               </p>
               <Button variant="primary" onClick={() => setCreating(true)}>
-                Create the first one
+                {t(d.rooms.createFirst)}
               </Button>
             </div>
           )}
@@ -136,7 +141,7 @@ export function Rooms() {
 
                 {room.role === 'viewer' ? (
                   <span className="rounded-full bg-secondary-wash px-2.5 py-[3px] text-xs font-semibold text-secondary">
-                    Shared with you
+                    {t(d.rooms.sharedWithYou)}
                   </span>
                 ) : (
                   <span className="tabular text-[13px] whitespace-nowrap text-ink-muted">
@@ -159,7 +164,7 @@ export function Rooms() {
                         variant="utility"
                         size="icon"
                         className="text-ink-faint opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                        aria-label={`Actions for ${room.name}`}
+                        aria-label={t(d.columns.actionsFor(room.name))}
                       >
                         <MoreHorizontal />
                       </Button>
@@ -167,12 +172,12 @@ export function Rooms() {
                     <DropdownMenuContent align="end" className="w-44">
                       <DropdownMenuItem onSelect={() => setRenaming(room)}>
                         <Pencil />
-                        Rename
+                        {t(d.common.rename)}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(room)}>
                         <Trash2 />
-                        Delete
+                        {t(d.common.delete)}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -205,7 +210,7 @@ export function Rooms() {
       <PromptDialog
         open={renaming !== null}
         onOpenChange={(open) => !open && setRenaming(null)}
-        title={`Rename ${renaming?.name ?? ''}`}
+        title={t(d.browser.renameTitle(renaming?.name ?? ''))}
         label="Name"
         submitLabel="Rename"
         initialValue={renaming?.name}

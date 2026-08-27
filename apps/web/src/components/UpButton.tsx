@@ -1,4 +1,6 @@
 import { Button } from '@/components/ui/button'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ArrowLeft } from 'lucide-react'
 
@@ -14,14 +16,21 @@ interface Props {
  * to last crumb every time is a smaller target for the same thing.
  */
 export function UpButton({ to, onClick }: Props) {
+  const t = useT()
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="utility" size="icon" onClick={onClick} aria-label={`Back to ${to}`}>
+        <Button
+          variant="utility"
+          size="icon"
+          onClick={onClick}
+          aria-label={t(d.browser.backTo(to))}
+        >
           <ArrowLeft />
         </Button>
       </TooltipTrigger>
-      <TooltipContent>Back to {to}</TooltipContent>
+      <TooltipContent>{t(d.browser.backTo(to))}</TooltipContent>
     </Tooltip>
   )
 }

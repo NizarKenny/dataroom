@@ -7,6 +7,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { COLUMNS, useColumns } from '@/lib/columns'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { ArrowLeft, ArrowRight, Check, Columns3 } from 'lucide-react'
 
 /**
@@ -15,6 +17,7 @@ import { ArrowLeft, ArrowRight, Check, Columns3 } from 'lucide-react'
  */
 export function ColumnsMenu() {
   const columns = useColumns()
+  const t = useT()
 
   return (
     <DropdownMenu>
@@ -23,7 +26,7 @@ export function ColumnsMenu() {
           variant="utility"
           size="icon"
           className="text-ink-faint"
-          aria-label="Choose and arrange the columns"
+          aria-label={t(d.columns.arrange)}
         >
           <Columns3 />
         </Button>
@@ -47,13 +50,13 @@ export function ColumnsMenu() {
                 }}
               >
                 <Check className={shown ? undefined : 'invisible'} />
-                {column.label}
+                {t(column.label)}
               </DropdownMenuItem>
 
               <Button
                 variant="utility"
                 size="icon"
-                aria-label={`Move ${column.label} left`}
+                aria-label={t(d.columns.moveLeft(t(column.label)))}
                 disabled={index === 0}
                 onClick={() => columns.nudge(id, -1)}
               >
@@ -62,7 +65,7 @@ export function ColumnsMenu() {
               <Button
                 variant="utility"
                 size="icon"
-                aria-label={`Move ${column.label} right`}
+                aria-label={t(d.columns.moveRight(t(column.label)))}
                 disabled={index === columns.layout.order.length - 1}
                 onClick={() => columns.nudge(id, 1)}
               >
@@ -74,7 +77,7 @@ export function ColumnsMenu() {
 
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={columns.isDefault} onSelect={() => columns.reset()}>
-          Reset to the default
+          {t(d.columns.reset)}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

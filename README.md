@@ -349,6 +349,15 @@ not a history. The list is the owner's alone: a reader can read the document, bu
 that it was re-issued on the fourteenth is a disclosure the seller makes, not one
 the room makes for them.
 
+**One breakpoint carries the responsive work.** Tailwind's own scale, unchanged,
+and only `sm` at 640px does anything: below it the toolbar breaks in two so the
+folder name keeps a line to be read on, the buttons that act on a room drop their
+labels, and the padding steps down once. A table too wide for the screen scrolls
+inside its own box rather than taking the page with it, with a floor of 540px
+because below that the columns crush instead of reflowing. Checked at 390, 768,
+1024 and 1440: nothing overflows the page at any of them. The rules are written
+down in the design system.
+
 **A node you may not see answers 404, not 403.** A 403 would confirm that a
 folder with that id exists, which is exactly what a shared out data room must not
 leak.
