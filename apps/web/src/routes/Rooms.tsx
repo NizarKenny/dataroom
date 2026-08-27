@@ -106,7 +106,7 @@ export function Rooms() {
 
           {rooms.isError && (
             <p className="p-6 text-[15px] text-danger">
-              The rooms could not be loaded. Check that the API is running.
+              Your data rooms could not be loaded. Try again in a moment.
             </p>
           )}
 

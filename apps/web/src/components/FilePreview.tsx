@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DownloadLink } from '@/lib/api'
-import { formatBytes } from '@/lib/format'
+import { describeType, formatBytes } from '@/lib/format'
 import { useQuery } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 
@@ -36,7 +36,7 @@ export function FilePreview({ file, onOpenChange, getLink, scope }: Props) {
             <DialogHeader>
               <DialogTitle className="truncate pr-8">{file.name}</DialogTitle>
               <DialogDescription>
-                {formatBytes(file.sizeBytes)} · {file.mimeType}
+                {formatBytes(file.sizeBytes)} · {describeType(file.mimeType)}
               </DialogDescription>
             </DialogHeader>
 
@@ -66,9 +66,10 @@ export function FilePreview({ file, onOpenChange, getLink, scope }: Props) {
 
 function Preview({ url, type, name }: { url: string; type: string; name: string }) {
   if (type === 'application/pdf') {
-    // The browser's own toolbar would put the storage key where the file name
-    // should be, and the dialog above already says the name and the size.
-    return <iframe src={`${url}#toolbar=0&navpanes=0`} title={name} className="size-full border-0" />
+    // The sidebar goes, the toolbar stays: a reader in a data room needs to page
+    // through a hundred page agreement and search inside it, and that is worth
+    // more than hiding the storage key the browser puts in its title bar.
+    return <iframe src={`${url}#navpanes=0`} title={name} className="size-full border-0" />
   }
 
   if (type.startsWith('image/')) {

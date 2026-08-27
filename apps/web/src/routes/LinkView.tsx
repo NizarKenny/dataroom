@@ -1,6 +1,7 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { FilePreview } from '@/components/FilePreview'
 import { FileTable, type Row } from '@/components/FileTable'
+import { ReaderBanner } from '@/components/ReaderBanner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/lib/api'
@@ -37,24 +38,31 @@ export function LinkView() {
   if (opened.isPending) {
     return (
       <Shell>
-        <Skeleton className="h-40 w-full rounded-lg" />
+        <div className="space-y-3 rounded-lg border border-hairline bg-surface p-4">
+          <Skeleton className="h-5 w-64" />
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-5 w-72" />
+        </div>
       </Shell>
     )
   }
 
   if (opened.isError) {
-    const revoked = opened.error instanceof ApiError && opened.error.code === 'share_revoked'
+    // Three different things, and telling someone to check the address they were
+    // sent when the server is the one having trouble sends them nowhere useful.
+    const problem = opened.error instanceof ApiError ? opened.error : null
+    const [heading, detail] =
+      problem?.code === 'share_revoked'
+        ? ['This link no longer works', 'Whoever shared it has turned it off. Ask them for a new one.']
+        : problem?.status === 404
+          ? ['This link is not valid', 'Check that you copied the whole address.']
+          : ['This link could not be opened', 'Something went wrong on our side. Try again in a moment.']
+
     return (
-      <Shell>
+      <Shell shared={false}>
         <div className="rounded-lg border border-hairline bg-surface px-6 py-13 text-center">
-          <h2 className="text-xl font-semibold">
-            {revoked ? 'This link no longer works' : 'This link is not valid'}
-          </h2>
-          <p className="mx-auto mt-2 max-w-[42ch] text-ink-muted">
-            {revoked
-              ? 'Whoever shared it has turned it off. Ask them for a new one.'
-              : 'Check that you copied the whole address.'}
-          </p>
+          <h2 className="text-xl font-semibold">{heading}</h2>
+          <p className="mx-auto mt-2 max-w-[42ch] text-ink-muted">{detail}</p>
         </div>
       </Shell>
     )
@@ -113,6 +121,10 @@ export function LinkView() {
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
         {view.data && (
           <>
+            {view.data.breadcrumbs[0] && (
+              <ReaderBanner grantedAt={view.data.breadcrumbs[0].name} through="link" />
+            )}
+
             {view.data.breadcrumbs.length > 1 && (
               <Breadcrumbs
                 trail={view.data.breadcrumbs}
@@ -162,7 +174,15 @@ export function LinkView() {
   )
 }
 
-function Shell({ room, children }: { room?: string; children: React.ReactNode }) {
+function Shell({
+  room,
+  shared = true,
+  children,
+}: {
+  room?: string
+  shared?: boolean
+  children: React.ReactNode
+}) {
   const { theme, toggle } = useTheme()
 
   return (
@@ -172,12 +192,20 @@ function Shell({ room, children }: { room?: string; children: React.ReactNode })
           <span className="font-semibold tracking-[-0.02em]">Data Room</span>
           {room && <span className="truncate text-[13px] text-ink-muted">{room}</span>}
 
-          <span className="ml-auto flex items-center gap-1.5 rounded-full bg-primary-wash px-2.5 py-[3px] text-xs font-semibold text-primary-active">
-            <Link2 className="size-3.5" />
-            Shared with you
-          </span>
+          {shared && (
+            <span className="ml-auto flex items-center gap-1.5 rounded-full bg-primary-wash px-2.5 py-[3px] text-xs font-semibold text-primary-active">
+              <Link2 className="size-3.5" />
+              Shared with you
+            </span>
+          )}
 
-          <Button variant="utility" size="icon" onClick={toggle} aria-label="Switch theme">
+          <Button
+            variant="utility"
+            size="icon"
+            onClick={toggle}
+            aria-label="Switch theme"
+            className={shared ? undefined : 'ml-auto'}
+          >
             {theme === 'dark' ? <Sun /> : <Moon />}
           </Button>
         </div>

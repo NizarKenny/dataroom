@@ -1,11 +1,11 @@
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
 
 export function formatBytes(bytes: number): string {
-  if (bytes < 1000) return `${bytes} B`
+  if (bytes < 1024) return `${bytes} B`
 
   let value = bytes
   let unit = 0
-  while (value >= 1000 && unit < UNITS.length - 1) {
+  while (value >= 1024 && unit < UNITS.length - 1) {
     value /= 1024
     unit++
   }
@@ -37,4 +37,20 @@ export function initialsOf(email: string): string {
   const [name = ''] = email.split('@')
   const parts = name.split(/[.\-_]/).filter(Boolean)
   return (parts.length > 1 ? `${parts[0]?.[0]}${parts[1]?.[0]}` : name.slice(0, 2)).toUpperCase()
+}
+
+const TYPE_NAMES: Record<string, string> = {
+  'application/pdf': 'PDF',
+  'text/csv': 'CSV',
+  'text/plain': 'Text',
+}
+
+/** What to call a file in front of a reader. "application/pdf" is not it. */
+export function describeType(mimeType: string): string {
+  const type = mimeType.split(';')[0]?.trim() ?? ''
+  if (TYPE_NAMES[type]) return TYPE_NAMES[type]
+  if (type.startsWith('image/')) return 'Image'
+  if (type.includes('word')) return 'Document'
+  if (type.includes('sheet') || type.includes('excel')) return 'Spreadsheet'
+  return 'File'
 }

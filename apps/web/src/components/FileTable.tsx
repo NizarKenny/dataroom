@@ -42,10 +42,10 @@ interface Props {
 }
 
 export function FileTable({ rows, onOpen, actions }: Props) {
-  // The column carries what was granted on a row itself. When nothing here was,
-  // it has nothing to say: readers are sent no access data at all, and a folder
-  // whose rows only inherit is already explained by the banner and the rails.
-  const showAccess = rows.some((row) => row.access && grantedHere(row.access))
+  // Present for an owner even when empty: a column that comes and goes between
+  // sibling folders moves every column after it under the reader's cursor.
+  // A reader is sent no access data at all, so for them it is not there.
+  const showAccess = rows.some((row) => row.access !== null)
 
   return (
     // The columns have a floor below which they crush rather than reflow, so on a
@@ -131,10 +131,10 @@ function RowIcon({ row }: { row: Row }) {
   const type = row.mimeType
   const Icon = type.startsWith('image/')
     ? Image
-    : type === 'application/pdf' || type.startsWith('text/')
-      ? FileText
-      : type.includes('sheet') || type.includes('csv')
-        ? FileSpreadsheet
+    : type.includes('csv') || type.includes('sheet') || type.includes('excel')
+      ? FileSpreadsheet
+      : type === 'application/pdf' || type.startsWith('text/')
+        ? FileText
         : FileIcon
 
   return <Icon className="size-4 shrink-0 text-ink-faint" />
@@ -191,7 +191,7 @@ function RowMenu({ row, actions }: { row: Row; actions: RowActions }) {
         <Button
           variant="utility"
           size="icon"
-          className="text-ink-faint opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+          className="text-ink-faint opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
           aria-label={`Actions for ${row.name}`}
         >
           <MoreHorizontal />

@@ -5,6 +5,7 @@ import { FilePreview } from '@/components/FilePreview'
 import { FileTable, type Row } from '@/components/FileTable'
 import { MoveDialog } from '@/components/MoveDialog'
 import { PromptDialog } from '@/components/PromptDialog'
+import { ReaderBanner } from '@/components/ReaderBanner'
 import { ShareDialog, type ShareTarget } from '@/components/ShareDialog'
 import { TopBar } from '@/components/TopBar'
 import { Button } from '@/components/ui/button'
@@ -190,6 +191,10 @@ export function Browser() {
               onNavigate={(id) => navigate(`/f/${id}`)}
               granted={!owner}
             />
+          )}
+
+          {!owner && breadcrumbs[0] && (
+            <ReaderBanner grantedAt={breadcrumbs[0].name} through="invitation" />
           )}
 
           {folder.access && (
