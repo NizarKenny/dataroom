@@ -22,7 +22,10 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # npm install rather than npm ci: the lockfile is written on Windows and
+      # npm records only the platform it resolved on for rolldown's native
+      # binding, which vitest needs. See npm/cli#4828.
+      - run: npm install --no-audit --no-fund
       - run: npx prisma generate --schema apps/api/prisma/schema.prisma
 
       - run: npm run typecheck --workspaces --if-present

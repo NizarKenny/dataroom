@@ -4,8 +4,9 @@ A virtual data room. Documents live in a private tree, and the owner decides who
 can see which part of it: a person by email, or anyone holding a link. Access
 granted on a folder reaches everything inside it and nothing beside it.
 
-- Live app: `TBD`
-- API: `TBD`
+- Live: **https://nizar-dataroom.vercel.app**
+- API: https://nizar-dataroom-api.vercel.app
+- Public link, no account needed: **https://nizar-dataroom.vercel.app/l/atlas-q4-2025-review**
 
 ![A data room listing](docs/screenshots/room.png)
 
@@ -15,8 +16,6 @@ granted on a folder reaches everything inside it and nothing beside it.
 | --- | --- | --- |
 | `demo@dataroom.dev` | `dataroom-demo-2026` | owns Project Atlas |
 | `reader@dataroom.dev` | `dataroom-demo-2026` | invited to `03 Legal` only |
-
-Public link, no account needed: `/l/atlas-q4-2025-review`
 
 Three things worth opening:
 
@@ -41,7 +40,7 @@ Three things worth opening:
 ## Running it locally
 
 ```bash
-git clone <repo> dataroom && cd dataroom
+git clone https://github.com/NizarKenny/dataroom.git && cd dataroom
 npm install
 
 cp .env.example .env      # fill in from the Supabase dashboard
