@@ -34,8 +34,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.setSerializerCompiler(serializerCompiler)
 
   // Preview deployments each get their own hostname, so the origin is a list.
+  // The methods are spelled out because this plugin defaults to GET, HEAD and
+  // POST, and a preflight that omits the rest fails in the browser only: curl
+  // and the smoke test never send one, so a rename looks fine from a terminal.
   await app.register(cors, {
     origin: env.WEB_ORIGIN.split(',').map((origin) => origin.trim()),
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE'],
     credentials: true,
   })
 

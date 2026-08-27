@@ -77,6 +77,23 @@ async function main() {
   const asReader = caller(app, reader.token)
   const anonymous = caller(app)
 
+  // The browser is the only client that sends a preflight, so a method missing
+  // from the allow list breaks rename, move and every delete in production while
+  // curl and every call in this file keep passing.
+  console.log('\ncors preflight')
+  const preflight = await app.inject({
+    method: 'OPTIONS',
+    url: '/rooms/00000000-0000-7000-8000-000000000000',
+    headers: {
+      origin: env.WEB_ORIGIN.split(',')[0]!.trim(),
+      'access-control-request-method': 'DELETE',
+    },
+  })
+  const allowed = String(preflight.headers['access-control-allow-methods'] ?? '')
+  for (const method of ['GET', 'POST', 'PATCH', 'DELETE']) {
+    check(`preflight allows ${method}`, allowed.includes(method), allowed)
+  }
+
   console.log('\nrooms and folders')
   const room = await asOwner('POST', '/rooms', { name: 'Project Atlas' })
   check('a room is created with a root folder', room.status === 201 && !!room.body.rootFolderId, room.body)
