@@ -103,10 +103,21 @@ export interface FileRow extends FolderRow {
   mimeType: string
 }
 
+export type Modified = 'any' | 'today' | 'week' | 'month' | 'year'
+
+export interface PageInfo {
+  number: number
+  pages: number
+  total: number
+  size: number
+  modified: Modified
+}
+
 export interface FolderView {
   room: { id: string; name: string; role: Role }
   folder: { id: string; name: string; parentId: string | null; access: AccessBadge | null }
   breadcrumbs: { id: string; name: string }[]
+  page: PageInfo
   folders: FolderRow[]
   files: FileRow[]
 }
@@ -193,7 +204,8 @@ export const api = {
   },
 
   folders: {
-    get: (id: string) => request<FolderView>(`/folders/${id}`),
+    get: (id: string, page = 1, modified: Modified = 'any') =>
+      request<FolderView>(`/folders/${id}?page=${page}&modified=${modified}`),
     manifest: (id: string) => request<Manifest>(`/folders/${id}/manifest`),
     create: (parentId: string, name: string) =>
       request<FolderRow>('/folders', { method: 'POST', body: { parentId, name } }),
@@ -247,8 +259,10 @@ export const api = {
         folderId: string | null
         file: { id: string; name: string; sizeBytes: number; mimeType: string } | null
       }>(`/links/${token}`, { signed: false }),
-    folder: (token: string, id: string) =>
-      request<FolderView>(`/links/${token}/folders/${id}`, { signed: false }),
+    folder: (token: string, id: string, page = 1, modified: Modified = 'any') =>
+      request<FolderView>(`/links/${token}/folders/${id}?page=${page}&modified=${modified}`, {
+        signed: false,
+      }),
     download: (token: string, id: string, disposition: 'inline' | 'attachment' = 'inline') =>
       request<DownloadLink>(`/links/${token}/files/${id}/download-url?disposition=${disposition}`, {
         signed: false,

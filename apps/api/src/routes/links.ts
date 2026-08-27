@@ -47,10 +47,18 @@ export const linkRoutes: FastifyPluginAsyncZod = async (app) => {
 
   app.get(
     '/links/:token/folders/:id',
-    { schema: { params: byToken.extend({ id: z.uuid() }) } },
+    {
+      schema: {
+        params: byToken.extend({ id: z.uuid() }),
+        querystring: z.object({
+          page: z.coerce.number().int().min(1).default(1),
+          modified: z.enum(['any', 'today', 'week', 'month', 'year']).default('any'),
+        }),
+      },
+    },
     async (request) => {
       const { viewer } = await openLink(request.params.token)
-      return folderView(viewer, request.params.id)
+      return folderView(viewer, request.params.id, request.query.page, request.query.modified)
     },
   )
 

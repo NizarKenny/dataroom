@@ -5,6 +5,8 @@ import { FilePreview } from '@/components/FilePreview'
 import { FileTable, type Row } from '@/components/FileTable'
 import { MoveDialog } from '@/components/MoveDialog'
 import { PromptDialog } from '@/components/PromptDialog'
+import { ModifiedFilter } from '@/components/ModifiedFilter'
+import { Pager } from '@/components/Pager'
 import { ReaderBanner } from '@/components/ReaderBanner'
 import { SearchField } from '@/components/SearchField'
 import { SearchResults } from '@/components/SearchResults'
@@ -14,14 +16,14 @@ import { UpButton } from '@/components/UpButton'
 import { VersionsDialog } from '@/components/VersionsDialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, type Modified } from '@/lib/api'
 import { useDebounced } from '@/lib/useDebounced'
 import { useUploads } from '@/uploads/queue'
 import { UploadPanel } from '@/uploads/UploadPanel'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FolderPlus, Share2, Upload } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 export function Browser() {
@@ -29,10 +31,32 @@ export function Browser() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
+  // The page and the filter live in the URL: a listing somebody links to opens
+  // where they were looking, and walking into another folder drops both, because
+  // navigate() leaves the query behind.
+  const [params, setParams] = useSearchParams()
+  const page = Math.max(1, Number(params.get('page')) || 1)
+  const modified = (params.get('modified') ?? 'any') as Modified
+
   const view = useQuery({
-    queryKey: ['folder', folderId],
-    queryFn: () => api.folders.get(folderId),
+    queryKey: ['folder', folderId, page, modified],
+    queryFn: () => api.folders.get(folderId, page, modified),
+    placeholderData: (previous) => previous,
   })
+
+  function setQueryParam(key: string, value: string, fallback: string) {
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        if (value === fallback) next.delete(key)
+        else next.set(key, value)
+        // A narrower list has fewer pages, and page seven of four is nothing.
+        if (key === 'modified') next.delete('page')
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   // Searching asks about the whole room, so it lives beside the folder query
   // rather than inside it, and survives walking from one folder to another.
@@ -138,6 +162,7 @@ export function Browser() {
   // rooms, which is where an owner at the top of a room goes.
   const parent = breadcrumbs[breadcrumbs.length - 2] ?? null
   const searching = query.trim().length > 0
+  const filtered = modified !== 'any'
 
   const rows: Row[] = [
     ...folders.map((entry) => ({ kind: 'folder' as const, ...entry })),
@@ -188,6 +213,15 @@ export function Browser() {
           </h1>
 
           <SearchField value={query} onChange={setQuery} placeholder="Search this data room" />
+
+          {/* Results are room wide and already sorted by name, so a window on
+              the modified date would be filtering something else. */}
+          {!searching && (
+            <ModifiedFilter
+              value={modified}
+              onChange={(next) => setQueryParam('modified', next, 'any')}
+            />
+          )}
 
           {owner && (
             <>
@@ -262,7 +296,23 @@ export function Browser() {
                 />
               )}
 
-              {rows.length === 0 ? (
+              {rows.length === 0 && filtered ? (
+                // An empty folder and a folder hidden by a filter look identical,
+                // and only one of them is the reader's own doing.
+                <div className="px-6 py-13 text-center">
+                  <h2 className="text-xl font-semibold">Nothing changed that recently</h2>
+                  <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
+                    This folder has {view.data.page.total === 0 ? 'things' : 'more'} in it, outside
+                    the window you picked.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setQueryParam('modified', 'any', 'any')}
+                  >
+                    Show everything
+                  </Button>
+                </div>
+              ) : rows.length === 0 ? (
                 <div className="px-6 py-13 text-center">
                   <h2 className="text-xl font-semibold">
                     {owner ? 'Nothing in here yet' : 'This folder is empty'}
@@ -301,6 +351,12 @@ export function Browser() {
                   }
                 />
               )}
+
+              <Pager
+                page={view.data.page.number}
+                pages={view.data.page.pages}
+                onGoTo={(next) => setQueryParam('page', String(next), '1')}
+              />
             </>
           )}
         </div>

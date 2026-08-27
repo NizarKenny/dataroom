@@ -13,21 +13,88 @@ import {
   type Viewer,
 } from './permissions.js'
 
+/** Rows on one page of a listing, folders and files counted together. */
+export const PAGE_ROWS = 50
+
+/** How far back a listing is willing to look, as the filter offers it. */
+export type Modified = 'any' | 'today' | 'week' | 'month' | 'year'
+
+const DAYS: Record<Exclude<Modified, 'any'>, number> = {
+  today: 1,
+  week: 7,
+  month: 30,
+  year: 365,
+}
+
+/**
+ * The cutoff, worked out on the server. A browser with a wrong clock would
+ * otherwise ask for a window that does not match what it says on the button.
+ */
+function since(window: Modified): Date | null {
+  if (window === 'any') return null
+  return new Date(Date.now() - DAYS[window] * 24 * 60 * 60 * 1000)
+}
+
 /**
  * One folder as the browser draws it. The signed-in route and the public link
  * route both end up here, so a link holder and an invited reader are answered by
  * exactly the same code and cannot drift apart.
+ *
+ * The listing is one sequence, folders first and then files, both by name, and a
+ * page is a window over it. Offset rather than keyset, because a pager with page
+ * numbers has to be able to jump to the seventh, and keyset only knows how to go
+ * next. The price is that a deep page counts rows it will not return; the win is
+ * that no folder ever draws more than fifty rows.
  */
-export async function folderView(viewer: Viewer, folderId: string) {
+export async function folderView(
+  viewer: Viewer,
+  folderId: string,
+  page = 1,
+  modified: Modified = 'any',
+) {
   const { folder, room, grant } = await openFolder(viewer, folderId)
 
   // The rail and the people count are the owner's view of their own room. A
   // reader who was let into one folder is not told who else was let in.
   const shares = grant.role === 'owner' ? await liveSharesIn(room.id) : null
 
+  // The filter belongs on the count as much as on the rows: a pager built from
+  // the unfiltered total would offer pages that come back empty.
+  const cutoff = since(modified)
+  const recent = cutoff ? { updatedAt: { gte: cutoff } } : {}
+
+  const [folderCount, fileCount] = await Promise.all([
+    prisma.folder.count({ where: { parentId: folder.id, ...recent } }),
+    prisma.file.count({ where: { folderId: folder.id, ...recent } }),
+  ])
+
+  const total = folderCount + fileCount
+  const pages = Math.max(1, Math.ceil(total / PAGE_ROWS))
+  const current = Math.min(Math.max(1, Math.trunc(page)), pages)
+  const from = (current - 1) * PAGE_ROWS
+
+  // The window can land wholly in the folders, wholly in the files, or across
+  // the seam. Asking for a slice of each and letting one come back empty is the
+  // whole of it.
+  const folderSlice = Math.max(0, Math.min(PAGE_ROWS, folderCount - from))
+
   const [folders, files, breadcrumbs] = await Promise.all([
-    prisma.folder.findMany({ where: { parentId: folder.id }, orderBy: { name: 'asc' } }),
-    prisma.file.findMany({ where: { folderId: folder.id }, orderBy: { name: 'asc' } }),
+    folderSlice === 0
+      ? Promise.resolve([])
+      : prisma.folder.findMany({
+          where: { parentId: folder.id, ...recent },
+          orderBy: { name: 'asc' },
+          skip: from,
+          take: folderSlice,
+        }),
+    PAGE_ROWS - folderSlice === 0
+      ? Promise.resolve([])
+      : prisma.file.findMany({
+          where: { folderId: folder.id, ...recent },
+          orderBy: { name: 'asc' },
+          skip: Math.max(0, from - folderCount),
+          take: PAGE_ROWS - folderSlice,
+        }),
     trailTo(folder, grant),
   ])
 
@@ -45,6 +112,8 @@ export async function folderView(viewer: Viewer, folderId: string) {
       access: shares ? badgeFor(folderTarget(folder), shares) : null,
     },
     breadcrumbs,
+    // Said even when there is one page, so the browser never has to guess.
+    page: { number: current, pages, total, size: PAGE_ROWS, modified },
     folders: folders.map((child) => folderRow(child, shares)),
     files: files.map((file) => fileRow(file, folder, shares)),
   }

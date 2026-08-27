@@ -1,4 +1,6 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { ModifiedFilter } from '@/components/ModifiedFilter'
+import { Pager } from '@/components/Pager'
 import { SearchField } from '@/components/SearchField'
 import { SearchResults } from '@/components/SearchResults'
 import { UpButton } from '@/components/UpButton'
@@ -7,14 +9,14 @@ import { FileTable, type Row } from '@/components/FileTable'
 import { ReaderBanner } from '@/components/ReaderBanner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, type Modified } from '@/lib/api'
 import { useDebounced } from '@/lib/useDebounced'
 import { formatBytes } from '@/lib/format'
 import { useTheme } from '@/theme'
 import { useQuery } from '@tanstack/react-query'
 import { Download, Link2, Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 /**
  * What the holder of a public link sees. No account, no toolbar, and no access
@@ -35,11 +37,29 @@ export function LinkView() {
 
   const shownFolder = folderId ?? opened.data?.folderId ?? null
 
+  const [params, setParams] = useSearchParams()
+  const page = Math.max(1, Number(params.get('page')) || 1)
+  const modified = (params.get('modified') ?? 'any') as Modified
+
   const view = useQuery({
-    queryKey: ['link-folder', token, shownFolder],
-    queryFn: () => api.links.folder(token, shownFolder!),
+    queryKey: ['link-folder', token, shownFolder, page, modified],
+    queryFn: () => api.links.folder(token, shownFolder!, page, modified),
     enabled: shownFolder !== null,
+    placeholderData: (previous) => previous,
   })
+
+  function setQueryParam(key: string, value: string, fallback: string) {
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        if (value === fallback) next.delete(key)
+        else next.set(key, value)
+        if (key === 'modified') next.delete('page')
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   // Someone sent two hundred documents through one link needs to find one of
   // them, and the scope on the server keeps it inside what the link reaches.
@@ -151,6 +171,13 @@ export function LinkView() {
           </h1>
 
           <SearchField value={query} onChange={setQuery} placeholder="Search what was shared" />
+
+          {!searching && (
+            <ModifiedFilter
+              value={modified}
+              onChange={(next) => setQueryParam('modified', next, 'any')}
+            />
+          )}
         </div>
       )}
 
@@ -200,6 +227,12 @@ export function LinkView() {
                 }
               />
             )}
+
+            <Pager
+              page={view.data.page.number}
+              pages={view.data.page.pages}
+              onGoTo={(next) => setQueryParam('page', String(next), '1')}
+            />
           </>
         )}
 

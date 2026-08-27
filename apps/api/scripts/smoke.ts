@@ -12,7 +12,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from '../src/app.js'
-import { prisma } from '../src/db.js'
+import { newId, prisma } from '../src/db.js'
+import { childPath } from '../src/domain/path.js'
 import { env } from '../src/env.js'
 
 const PASSWORD = 'smoke-test-password-8712'
@@ -203,6 +204,53 @@ async function main() {
   check('the folder lists its file', listing.body?.files?.length === 1, listing.body?.files)
   check('breadcrumbs run from the room down', listing.body?.breadcrumbs?.length === 3, listing.body?.breadcrumbs)
   check('the owner sees the access column', listing.body?.files?.[0]?.access !== null)
+
+  // Fifty two rows in one folder, written straight to the database because this
+  // is about the read path and fifty two round trips would only be slow.
+  const paged = await asOwner('POST', '/folders', { parentId: rootId, name: 'Paging' })
+  await prisma.folder.createMany({
+    data: Array.from({ length: 52 }, (_, n) => {
+      const id = newId()
+      return {
+        id,
+        dataRoomId: roomId,
+        parentId: paged.body.id as string,
+        name: `Box ${String(n + 1).padStart(2, '0')}`,
+        path: childPath(paged.body.path as string, id),
+        depth: 2,
+      }
+    }),
+  })
+
+  const first = await asOwner('GET', `/folders/${paged.body.id}`)
+  check('a page holds fifty rows', first.body?.folders?.length === 50, first.body?.folders?.length)
+  check('and says how many pages there are', first.body?.page?.pages === 2, first.body?.page)
+  check('and how many rows in total', first.body?.page?.total === 52, first.body?.page)
+
+  const lastPage = await asOwner('GET', `/folders/${paged.body.id}?page=2`)
+  check('the last page holds the remainder', lastPage.body?.folders?.length === 2, lastPage.body?.folders?.length)
+  check('and carries on where the first stopped', lastPage.body?.folders?.[0]?.name === 'Box 51', lastPage.body?.folders?.[0])
+
+  const beyond = await asOwner('GET', `/folders/${paged.body.id}?page=99`)
+  check('a page past the end lands on the last one', beyond.body?.page?.number === 2, beyond.body?.page)
+
+  const q4Page = await asOwner('GET', `/folders/${q4.body.id}`)
+  check('one page of rows still says so', q4Page.body?.page?.pages === 1, q4Page.body?.page)
+
+  // Everything in the room was made minutes ago, so a window of a day keeps it
+  // and a filter is only worth trusting if it also throws things away.
+  const recent = await asOwner('GET', `/folders/${paged.body.id}?modified=today`)
+  check('a filter keeps what falls inside it', recent.body?.page?.total === 52, recent.body?.page)
+
+  await prisma.folder.updateMany({
+    where: { parentId: paged.body.id as string },
+    data: { updatedAt: new Date('2020-01-01T00:00:00Z') },
+  })
+  const stale = await asOwner('GET', `/folders/${paged.body.id}?modified=today`)
+  check('and drops what falls outside it', stale.body?.page?.total === 0, stale.body?.page)
+  check('the pager collapses with it', stale.body?.page?.pages === 1, stale.body?.page)
+  const unfiltered = await asOwner('GET', `/folders/${paged.body.id}`)
+  check('with the filter off they are all back', unfiltered.body?.page?.total === 52, unfiltered.body?.page)
 
   console.log('\ndownload')
   const download = await asOwner('GET', `/files/${recorded.body.id}/download-url`)

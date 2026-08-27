@@ -10,10 +10,17 @@ import { removeObjects } from '../storage.js'
 import { folderView } from '../views.js'
 
 const folderId = z.object({ id: z.uuid() })
+const listing = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  modified: z.enum(['any', 'today', 'week', 'month', 'year']).default('any'),
+})
 
 export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
-  app.get('/folders/:id', { schema: { params: folderId } }, async (request) =>
-    folderView(viewerOf(request), request.params.id),
+  app.get(
+    '/folders/:id',
+    { schema: { params: folderId, querystring: listing } },
+    async (request) =>
+      folderView(viewerOf(request), request.params.id, request.query.page, request.query.modified),
   )
 
   app.post(

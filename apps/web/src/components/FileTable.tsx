@@ -6,7 +6,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ColumnsMenu } from '@/components/ColumnsMenu'
 import type { AccessBadge, FileRow, FolderRow } from '@/lib/api'
+import { useColumns, type ColumnId } from '@/lib/columns'
 import { formatBytes, formatWhen } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import {
@@ -22,10 +24,15 @@ import {
   Share2,
   Trash2,
 } from 'lucide-react'
+import { useState } from 'react'
 
-export type Row =
-  | ({ kind: 'folder' } & FolderRow)
-  | ({ kind: 'file' } & FileRow)
+const LABELS: Record<ColumnId, string> = {
+  access: 'Access',
+  size: 'Size',
+  modified: 'Modified',
+}
+
+export type Row = ({ kind: 'folder' } & FolderRow) | ({ kind: 'file' } & FileRow)
 
 export interface RowActions {
   rename: (row: Row) => void
@@ -44,10 +51,21 @@ interface Props {
 }
 
 export function FileTable({ rows, onOpen, actions }: Props) {
+  const columns = useColumns()
+  const [dragging, setDragging] = useState<ColumnId | null>(null)
+  const [over, setOver] = useState<ColumnId | null>(null)
+
   // Present for an owner even when empty: a column that comes and goes between
   // sibling folders moves every column after it under the reader's cursor.
   // A reader is sent no access data at all, so for them it is not there.
   const showAccess = rows.some((row) => row.access !== null)
+  const shown = columns.visible.filter((id) => id !== 'access' || showAccess)
+
+  function drop(onto: ColumnId) {
+    if (dragging) columns.moveTo(dragging, onto)
+    setDragging(null)
+    setOver(null)
+  }
 
   return (
     // The columns have a floor below which they crush rather than reflow, so on a
@@ -57,16 +75,47 @@ export function FileTable({ rows, onOpen, actions }: Props) {
         <thead>
           <tr>
             <Th className="w-full">Name</Th>
-            {showAccess && <Th>Access</Th>}
-            <Th className="text-right">Size</Th>
-            <Th className="text-right">Modified</Th>
-            {actions && <Th aria-label="Actions" />}
+
+            {shown.map((id) => (
+              <Th
+                key={id}
+                draggable
+                onDragStart={() => setDragging(id)}
+                onDragEnd={() => {
+                  setDragging(null)
+                  setOver(null)
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  setOver(id)
+                }}
+                onDragLeave={() => setOver((current) => (current === id ? null : current))}
+                onDrop={() => drop(id)}
+                className={cn(
+                  'cursor-grab select-none',
+                  id !== 'access' && 'text-right',
+                  dragging === id && 'opacity-45',
+                  over === id && dragging !== id && 'bg-primary-wash text-primary-active',
+                )}
+              >
+                {LABELS[id]}
+              </Th>
+            ))}
+
+            {actions && (
+              <Th aria-label="Columns" className="pr-3 pl-0 text-right">
+                <ColumnsMenu />
+              </Th>
+            )}
           </tr>
         </thead>
 
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className="group border-b border-hairline last:border-b-0 hover:bg-sunken">
+            <tr
+              key={row.id}
+              className="group border-b border-hairline last:border-b-0 hover:bg-sunken"
+            >
               <td
                 className={cn(
                   'px-4 py-[13px]',
@@ -86,19 +135,24 @@ export function FileTable({ rows, onOpen, actions }: Props) {
                 </button>
               </td>
 
-              {showAccess && (
-                <td className="px-4 py-[13px] whitespace-nowrap">
-                  {row.access && <AccessChips access={row.access} />}
-                </td>
+              {shown.map((id) =>
+                id === 'access' ? (
+                  <td key={id} className="px-4 py-[13px] whitespace-nowrap">
+                    {row.access && <AccessChips access={row.access} />}
+                  </td>
+                ) : (
+                  <td
+                    key={id}
+                    className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted"
+                  >
+                    {id === 'size'
+                      ? row.kind === 'file'
+                        ? formatBytes(row.sizeBytes)
+                        : ''
+                      : formatWhen(row.updatedAt)}
+                  </td>
+                ),
               )}
-
-              <td className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted">
-                {row.kind === 'file' ? formatBytes(row.sizeBytes) : ''}
-              </td>
-
-              <td className="tabular px-4 py-[13px] text-right text-[13px] whitespace-nowrap text-ink-muted">
-                {formatWhen(row.updatedAt)}
-              </td>
 
               {actions && (
                 <td className="py-[13px] pr-3 pl-0">
