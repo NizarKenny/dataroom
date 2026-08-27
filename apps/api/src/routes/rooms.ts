@@ -2,9 +2,11 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { principalOf, viewerOf } from '../auth.js'
 import { newId, prisma } from '../db.js'
+import { notFound } from '../errors.js'
 import { cleanName } from '../domain/names.js'
 import { rootPath, segments } from '../domain/path.js'
 import { openRoom, requireOwner } from '../permissions.js'
+import { searchView } from '../views.js'
 import { listRoomObjects, removeObjects } from '../storage.js'
 
 const roomId = z.object({ id: z.uuid() })
@@ -81,6 +83,21 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
       }
     })
   })
+
+  /**
+   * Files anywhere in the room by name. Deliberately not scoped to the folder in
+   * front of you: past a few hundred documents the question is "where is the
+   * share purchase agreement", not "is it in this folder".
+   */
+  app.get(
+    '/rooms/:id/search',
+    { schema: { params: roomId, querystring: z.object({ q: z.string().trim().min(1).max(120) }) } },
+    async (request) => {
+      const room = await prisma.dataRoom.findUnique({ where: { id: request.params.id } })
+      if (!room) throw notFound('data room')
+      return searchView(viewerOf(request), room, request.query.q)
+    },
+  )
 
   app.post('/rooms', { schema: { body: roomName } }, async (request, reply) => {
     const { userId } = principalOf(request)

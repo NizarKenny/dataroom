@@ -137,6 +137,46 @@ export async function openLink(token: string) {
   return { share, room: share.dataRoom, viewer }
 }
 
+/**
+ * Everything a viewer may read inside one room, in the shape a query can filter
+ * on: the folder paths their grants sit on, and the ids of files shared on their
+ * own. Null for an owner, which means no filter at all.
+ *
+ * A listing never needs this, because a listing already stands on one folder the
+ * viewer opened. Searching does: it asks a question about the whole room, and
+ * the answer has to be cut down to the part of it this reader was let into.
+ */
+export interface ReadScope {
+  paths: string[]
+  fileIds: string[]
+}
+
+export async function readableIn(viewer: Viewer, room: DataRoom): Promise<ReadScope | null> {
+  const shares =
+    viewer.kind === 'link'
+      ? viewer.dataRoomId === room.id
+        ? [viewer.share]
+        : []
+      : room.ownerId === viewer.userId
+        ? null
+        : await prisma.share.findMany({
+            where: { dataRoomId: room.id, revokedAt: null, granteeUserId: viewer.userId },
+            select: LIVE_SHARE,
+          })
+
+  if (shares === null) return null
+
+  const scope: ReadScope = {
+    paths: shares.flatMap((share) => (share.resourcePath ? [share.resourcePath] : [])),
+    fileIds: shares.flatMap((share) => (share.resourceType === 'file' ? [share.resourceId] : [])),
+  }
+
+  // Nothing in this room reaches them, and saying so as a 404 keeps it
+  // indistinguishable from a room that is not there.
+  if (scope.paths.length === 0 && scope.fileIds.length === 0) throw notFound('data room')
+  return scope
+}
+
 export function requireOwner(grant: Grant): void {
   if (grant.role !== 'owner') throw readOnly()
 }

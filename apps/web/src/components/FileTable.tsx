@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   FileText,
   Folder,
+  History,
   Image,
   MoreHorizontal,
   Pencil,
@@ -32,6 +33,7 @@ export interface RowActions {
   share: (row: Row) => void
   remove: (row: Row) => void
   download: (row: Row) => void
+  history: (row: Row) => void
 }
 
 interface Props {
@@ -207,10 +209,16 @@ function RowMenu({ row, actions }: { row: Row; actions: RowActions }) {
 
       <DropdownMenuContent align="end" className="w-44">
         {row.kind === 'file' && (
-          <DropdownMenuItem onSelect={() => actions.download(row)}>
-            <Download />
-            Download
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem onSelect={() => actions.download(row)}>
+              <Download />
+              Download
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => actions.history(row)}>
+              <History />
+              History
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuItem onSelect={() => actions.share(row)}>
           <Share2 />

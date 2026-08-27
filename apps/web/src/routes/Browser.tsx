@@ -6,12 +6,16 @@ import { FileTable, type Row } from '@/components/FileTable'
 import { MoveDialog } from '@/components/MoveDialog'
 import { PromptDialog } from '@/components/PromptDialog'
 import { ReaderBanner } from '@/components/ReaderBanner'
+import { SearchField } from '@/components/SearchField'
+import { SearchResults } from '@/components/SearchResults'
 import { ShareDialog, type ShareTarget } from '@/components/ShareDialog'
 import { TopBar } from '@/components/TopBar'
 import { UpButton } from '@/components/UpButton'
+import { VersionsDialog } from '@/components/VersionsDialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/lib/api'
+import { useDebounced } from '@/lib/useDebounced'
 import { useUploads } from '@/uploads/queue'
 import { UploadPanel } from '@/uploads/UploadPanel'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -30,12 +34,28 @@ export function Browser() {
     queryFn: () => api.folders.get(folderId),
   })
 
+  // Searching asks about the whole room, so it lives beside the folder query
+  // rather than inside it, and survives walking from one folder to another.
+  const [query, setQuery] = useState('')
+  const term = useDebounced(query.trim(), 250)
+  const roomId = view.data?.room.id
+
+  const results = useQuery({
+    queryKey: ['search', roomId, term],
+    queryFn: () => api.rooms.search(roomId!, term),
+    enabled: Boolean(roomId) && term.length > 0,
+    // Holds the last answer while the next one loads, so the list does not blink
+    // back to empty on every keystroke.
+    placeholderData: (previous) => previous,
+  })
+
   const [creating, setCreating] = useState(false)
   const [renaming, setRenaming] = useState<Row | null>(null)
   const [deleting, setDeleting] = useState<Row | null>(null)
   const [moving, setMoving] = useState<Row | null>(null)
   const [sharing, setSharing] = useState<ShareTarget | null>(null)
   const [previewing, setPreviewing] = useState<Row | null>(null)
+  const [history, setHistory] = useState<Row | null>(null)
   const [dragging, setDragging] = useState(false)
 
   const picker = useRef<HTMLInputElement>(null)
@@ -117,6 +137,7 @@ export function Browser() {
   // always somewhere they are allowed to be. Above it there is only the list of
   // rooms, which is where an owner at the top of a room goes.
   const parent = breadcrumbs[breadcrumbs.length - 2] ?? null
+  const searching = query.trim().length > 0
 
   const rows: Row[] = [
     ...folders.map((entry) => ({ kind: 'folder' as const, ...entry })),
@@ -166,6 +187,8 @@ export function Browser() {
             {folder.name}
           </h1>
 
+          <SearchField value={query} onChange={setQuery} placeholder="Search this data room" />
+
           {owner && (
             <>
               <Button variant="utility" onClick={() => setCreating(true)}>
@@ -194,72 +217,91 @@ export function Browser() {
         </div>
 
         <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
-          {/* At the top of a room the trail would only repeat the heading. */}
-          {breadcrumbs.length > 1 && (
-            <Breadcrumbs
-              trail={breadcrumbs}
-              onNavigate={(id) => navigate(`/f/${id}`)}
-              granted={!owner}
+          {/* Results are room wide, so the trail and the banners for the folder
+              behind them would be describing something the reader is not looking
+              at. They come back the moment the field is cleared. */}
+          {searching ? (
+            <SearchResults
+              query={term}
+              results={results.data}
+              pending={results.isPending || term !== query.trim()}
+              onOpen={(hit) => setPreviewing({ kind: 'file', ...hit })}
+              onGoToFolder={(hit) => {
+                setQuery('')
+                navigate(`/f/${hit.folderId}`)
+              }}
             />
-          )}
-
-          {!owner && breadcrumbs[0] && (
-            <ReaderBanner grantedAt={breadcrumbs[0].name} through="invitation" />
-          )}
-
-          {folder.access && (
-            <AccessBanner
-              access={folder.access}
-              grantedAtName={
-                breadcrumbs.find((crumb) => crumb.id === folder.access?.grantedAt)?.name ?? null
-              }
-              onManage={() =>
-                setSharing(
-                  atRoot
-                    ? { type: 'data_room', id: room.id, name: room.name }
-                    : { type: 'folder', id: folder.id, name: folder.name },
-                )
-              }
-            />
-          )}
-
-          {rows.length === 0 ? (
-            <div className="px-6 py-13 text-center">
-              <h2 className="text-xl font-semibold">
-                {owner ? 'Nothing in here yet' : 'This folder is empty'}
-              </h2>
-              <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
-                {owner
-                  ? 'Drop files anywhere on this page, or make a folder to sort them into.'
-                  : 'Nothing has been put in here yet.'}
-              </p>
-              {owner && (
-                <Button variant="primary" onClick={() => picker.current?.click()}>
-                  Upload files
-                </Button>
-              )}
-            </div>
           ) : (
-            <FileTable
-              rows={rows}
-              onOpen={open}
-              actions={
-                owner
-                  ? {
-                      rename: setRenaming,
-                      move: setMoving,
-                      remove: setDeleting,
-                      download,
-                      share: (row) =>
-                        setSharing({
-                          type: row.kind === 'folder' ? 'folder' : 'file',
-                          id: row.id,
-                          name: row.name,
-                        }),
-                    }
-                  : undefined
-              }
-            />
+            <>
+              {/* At the top of a room the trail would only repeat the heading. */}
+              {breadcrumbs.length > 1 && (
+                <Breadcrumbs
+                  trail={breadcrumbs}
+                  onNavigate={(id) => navigate(`/f/${id}`)}
+                  granted={!owner}
+                />
+              )}
+
+              {!owner && breadcrumbs[0] && (
+                <ReaderBanner grantedAt={breadcrumbs[0].name} through="invitation" />
+              )}
+
+              {folder.access && (
+                <AccessBanner
+                  access={folder.access}
+                  grantedAtName={
+                    breadcrumbs.find((crumb) => crumb.id === folder.access?.grantedAt)?.name ?? null
+                  }
+                  onManage={() =>
+                    setSharing(
+                      atRoot
+                        ? { type: 'data_room', id: room.id, name: room.name }
+                        : { type: 'folder', id: folder.id, name: folder.name },
+                    )
+                  }
+                />
+              )}
+
+              {rows.length === 0 ? (
+                <div className="px-6 py-13 text-center">
+                  <h2 className="text-xl font-semibold">
+                    {owner ? 'Nothing in here yet' : 'This folder is empty'}
+                  </h2>
+                  <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
+                    {owner
+                      ? 'Drop files anywhere on this page, or make a folder to sort them into.'
+                      : 'Nothing has been put in here yet.'}
+                  </p>
+                  {owner && (
+                    <Button variant="primary" onClick={() => picker.current?.click()}>
+                      Upload files
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <FileTable
+                  rows={rows}
+                  onOpen={open}
+                  actions={
+                    owner
+                      ? {
+                          rename: setRenaming,
+                          move: setMoving,
+                          remove: setDeleting,
+                          download,
+                          history: setHistory,
+                          share: (row) =>
+                            setSharing({
+                              type: row.kind === 'folder' ? 'folder' : 'file',
+                              id: row.id,
+                              name: row.name,
+                            }),
+                        }
+                      : undefined
+                  }
+                />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -330,6 +372,12 @@ export function Browser() {
         scope="account"
       />
 
+      <VersionsDialog
+        file={history?.kind === 'file' ? history : null}
+        onOpenChange={(open) => !open && setHistory(null)}
+        onRestored={() => refresh()}
+      />
+
       <UploadPanel queue={uploads} />
     </Shell>
   )
@@ -338,9 +386,7 @@ export function Browser() {
 function Shell({ name, children }: { name?: string; children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-canvas">
-      <TopBar>
-        {name && <span className="truncate text-[13px] text-ink-muted">{name}</span>}
-      </TopBar>
+      <TopBar>{name && <span className="truncate text-[13px] text-ink-muted">{name}</span>}</TopBar>
       <main className="mx-auto max-w-[1180px] px-6 py-8">{children}</main>
     </div>
   )

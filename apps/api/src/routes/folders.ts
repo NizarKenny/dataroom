@@ -168,7 +168,9 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
 
       const files = await tx.file.findMany({
         where: { folder: { path: { startsWith: folder.path } } },
-        select: { id: true, storageKey: true },
+        // Every version too: they are the same documents, and once the folder is
+        // gone there is no row left pointing at them.
+        select: { id: true, storageKey: true, versions: { select: { storageKey: true } } },
       })
 
       // Revoked rather than deleted: whoever holds a link to something in here
@@ -190,7 +192,13 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
       return files
     })
 
-    await removeObjects(doomed.map((file) => file.storageKey)).catch((error: unknown) => {
+    const keys = [
+      ...new Set(
+        doomed.flatMap((file) => [file.storageKey, ...file.versions.map((v) => v.storageKey)]),
+      ),
+    ]
+
+    await removeObjects(keys).catch((error: unknown) => {
       request.log.error({ err: error, folderId: folder.id }, 'folder deleted, objects left behind')
     })
 

@@ -1,9 +1,9 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
-import { viewerOf } from '../auth.js'
+import { principalOf, viewerOf } from '../auth.js'
 import { newId, prisma, withUniqueName } from '../db.js'
-import { cleanName, nextFreeName } from '../domain/names.js'
-import { badRequest, nameTaken, notFound } from '../errors.js'
+import { cleanName, nextFreeName, versionedName } from '../domain/names.js'
+import { badRequest, nameTaken, notFound, versionRaced } from '../errors.js'
 import { openFile, openFolder, requireOwner } from '../permissions.js'
 import {
   describeObject,
@@ -42,7 +42,7 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
         body: z.object({
           name: z.string(),
           sizeBytes: z.number().int().nonnegative(),
-          onConflict: z.enum(['fail', 'rename', 'replace']).default('fail'),
+          onConflict: z.enum(['fail', 'rename', 'version']).default('fail'),
         }),
       },
     },
@@ -59,15 +59,15 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
 
       let id = newId()
       let finalName = name
-      let replace = false
+      let version = 1
 
       if (existing) {
         if (request.body.onConflict === 'fail') throw nameTaken('file', name)
-        if (request.body.onConflict === 'replace') {
-          // Same row, same object key: the new bytes land on top of the old ones
-          // and every link that pointed at this file still points at it.
+        if (request.body.onConflict === 'version') {
+          // Same row, same id, a key of its own: every link that pointed at this
+          // file still points at it, and what was there is still there.
           id = existing.id
-          replace = true
+          version = existing.version + 1
         } else {
           const siblings = await prisma.file.findMany({
             where: { folderId: folder.id },
@@ -77,9 +77,11 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
         }
       }
 
-      const key = objectKey(room.id, id)
-      const { url, token } = await signUpload(key, replace)
-      return { fileId: id, name: finalName, url, token, key }
+      const key = objectKey(room.id, id, version)
+      // Nothing is ever written twice to the same key, so there is nothing to
+      // overwrite; a retry of the same upload lands on the same key and wins.
+      const { url, token } = await signUpload(key, true)
+      return { fileId: id, name: finalName, url, token, key, version }
     },
   )
 
@@ -93,15 +95,21 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         params: inFolder,
-        body: z.object({ fileId: z.uuid(), name: z.string() }),
+        body: z.object({
+          fileId: z.uuid(),
+          name: z.string(),
+          version: z.number().int().min(1).default(1),
+        }),
       },
     },
     async (request, reply) => {
       const { folder, room, grant } = await openFolder(viewerOf(request), request.params.folderId)
       requireOwner(grant)
 
+      const { userId } = principalOf(request)
       const name = cleanName(request.body.name)
-      const key = objectKey(room.id, request.body.fileId)
+      const { fileId: id, version } = request.body
+      const key = objectKey(room.id, id, version)
 
       const object = await describeObject(key)
       if (!object) throw badRequest('That upload did not finish')
@@ -123,26 +131,47 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
       // The key is built from a room the caller may write to, so a borrowed id
       // cannot reach another room. This covers the case that is left: an id that
       // already names a file elsewhere in the same room.
-      const existing = await prisma.file.findUnique({ where: { id: request.body.fileId } })
+      const existing = await prisma.file.findUnique({ where: { id } })
       if (existing && existing.folderId !== folder.id) throw notFound('file')
+
+      // Recording is one step behind an upload that already happened, so it has
+      // to survive being run twice: the same version recorded again is the same
+      // bytes at the same key, and saying so is better than a 409 for a retry.
+      if (existing && version !== existing.version && version !== existing.version + 1) {
+        throw versionRaced(existing.name)
+      }
 
       const recorded = {
         name,
+        storageKey: key,
         sizeBytes: BigInt(object.sizeBytes),
         mimeType: object.mimeType,
+        version,
       }
 
       const file = await withUniqueName('file', name, () =>
-        prisma.file.upsert({
-          where: { id: request.body.fileId },
-          create: {
-            id: request.body.fileId,
-            dataRoomId: room.id,
-            folderId: folder.id,
-            storageKey: key,
-            ...recorded,
-          },
-          update: recorded,
+        prisma.$transaction(async (tx) => {
+          const saved = await tx.file.upsert({
+            where: { id },
+            create: { id, dataRoomId: room.id, folderId: folder.id, ...recorded },
+            update: recorded,
+          })
+
+          await tx.fileVersion.upsert({
+            where: { fileId_version: { fileId: id, version } },
+            create: {
+              id: newId(),
+              fileId: id,
+              version,
+              storageKey: key,
+              sizeBytes: recorded.sizeBytes,
+              mimeType: recorded.mimeType,
+              createdById: userId,
+            },
+            update: { storageKey: key, sizeBytes: recorded.sizeBytes, mimeType: recorded.mimeType },
+          })
+
+          return saved
         }),
       )
 
@@ -151,7 +180,116 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
         name: file.name,
         sizeBytes: Number(file.sizeBytes),
         mimeType: file.mimeType,
+        version: file.version,
       })
+    },
+  )
+
+  /**
+   * What this document has been. Owner only: a reader learning that the accounts
+   * changed on the fourteenth is a disclosure the seller has not chosen to make,
+   * and the room is not the place to make it for them.
+   */
+  app.get('/files/:id/versions', { schema: { params: fileId } }, async (request) => {
+    const { file, grant } = await openFile(viewerOf(request), request.params.id)
+    requireOwner(grant)
+
+    const versions = await prisma.fileVersion.findMany({
+      where: { fileId: file.id },
+      orderBy: { version: 'desc' },
+      include: { createdBy: { select: { email: true } } },
+    })
+
+    return versions.map((entry) => ({
+      version: entry.version,
+      sizeBytes: Number(entry.sizeBytes),
+      mimeType: entry.mimeType,
+      createdAt: entry.createdAt,
+      createdBy: entry.createdBy.email,
+      current: entry.version === file.version,
+    }))
+  })
+
+  app.get(
+    '/files/:id/versions/:version/download-url',
+    {
+      schema: {
+        params: fileId.extend({ version: z.coerce.number().int().min(1) }),
+        querystring: z.object({ disposition: z.enum(['inline', 'attachment']).default('inline') }),
+      },
+    },
+    async (request) => {
+      const { file, grant } = await openFile(viewerOf(request), request.params.id)
+      requireOwner(grant)
+
+      const entry = await prisma.fileVersion.findUnique({
+        where: { fileId_version: { fileId: file.id, version: request.params.version } },
+      })
+      if (!entry) throw notFound('version')
+
+      // Named for the version, so three of them in a downloads folder are three
+      // different files rather than three copies of one.
+      const named =
+        entry.version === file.version ? file.name : versionedName(file.name, entry.version)
+
+      const link = await signDownload(
+        entry.storageKey,
+        named,
+        entry.mimeType,
+        request.query.disposition === 'attachment',
+      )
+      return { url: link.url, expiresIn: link.expiresIn, name: named, mimeType: entry.mimeType }
+    },
+  )
+
+  /**
+   * Bringing an old version back adds one rather than winding the count down.
+   * The history is a record of what happened, and a restore is something that
+   * happened; two rows sharing a key is the cheap half of that.
+   */
+  app.post(
+    '/files/:id/versions/:version/restore',
+    { schema: { params: fileId.extend({ version: z.coerce.number().int().min(1) }) } },
+    async (request) => {
+      const { userId } = principalOf(request)
+      const { file, grant } = await openFile(viewerOf(request), request.params.id)
+      requireOwner(grant)
+
+      if (request.params.version === file.version) {
+        throw badRequest('That version is already the current one')
+      }
+
+      const restored = await prisma.$transaction(async (tx) => {
+        const entry = await tx.fileVersion.findUnique({
+          where: { fileId_version: { fileId: file.id, version: request.params.version } },
+        })
+        if (!entry) throw notFound('version')
+
+        const next = file.version + 1
+        await tx.fileVersion.create({
+          data: {
+            id: newId(),
+            fileId: file.id,
+            version: next,
+            storageKey: entry.storageKey,
+            sizeBytes: entry.sizeBytes,
+            mimeType: entry.mimeType,
+            createdById: userId,
+          },
+        })
+
+        return tx.file.update({
+          where: { id: file.id },
+          data: {
+            storageKey: entry.storageKey,
+            sizeBytes: entry.sizeBytes,
+            mimeType: entry.mimeType,
+            version: next,
+          },
+        })
+      })
+
+      return { id: restored.id, name: restored.name, version: restored.version }
     },
   )
 
@@ -222,6 +360,12 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
     const { file, grant } = await openFile(viewerOf(request), request.params.id)
     requireOwner(grant)
 
+    const versions = await prisma.fileVersion.findMany({
+      where: { fileId: file.id },
+      select: { storageKey: true },
+    })
+    const keys = [...new Set([file.storageKey, ...versions.map((entry) => entry.storageKey)])]
+
     await prisma.$transaction([
       // Revoked rather than deleted, so a link to this file says it was switched
       // off instead of dropping the reader into a blank 404.
@@ -232,8 +376,10 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
       prisma.file.delete({ where: { id: file.id } }),
     ])
 
-    await removeObjects([file.storageKey]).catch((error: unknown) => {
-      request.log.error({ err: error, fileId: file.id }, 'file deleted, object left behind')
+    // Every version, not just the one on the row: the others are the same
+    // document and nobody can reach them once the file is gone.
+    await removeObjects(keys).catch((error: unknown) => {
+      request.log.error({ err: error, fileId: file.id }, 'file deleted, objects left behind')
     })
 
     return reply.status(204).send()

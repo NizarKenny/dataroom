@@ -24,6 +24,15 @@ export function splitExtension(name: string): [stem: string, extension: string] 
 }
 
 /**
+ * "Report.pdf" at version 3 downloads as "Report (v3).pdf", so three of them in
+ * one downloads folder are three documents rather than three copies of one.
+ */
+export function versionedName(name: string, version: number): string {
+  const [stem, extension] = splitExtension(name)
+  return `${stem} (v${version})${extension}`
+}
+
+/**
  * "Report.pdf" becomes "Report (2).pdf" when the name is taken. This is what the
  * upload queue offers as "keep both", and what a rename falls back to.
  */

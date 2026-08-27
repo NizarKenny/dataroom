@@ -153,12 +153,50 @@ async function main() {
   })
   check('keep both numbers the copy', renamed.body?.name === 'cap-table (2).csv', renamed.body)
 
-  const replaced = await asOwner('POST', `/folders/${q4.body.id}/uploads`, {
+  console.log('\nversions')
+  const revised = Buffer.from('period,revenue\nQ4,1310000\n', 'utf8')
+  const second = await asOwner('POST', `/folders/${q4.body.id}/uploads`, {
     name: 'cap-table.csv',
-    sizeBytes: 10,
-    onConflict: 'replace',
+    sizeBytes: revised.byteLength,
+    onConflict: 'version',
   })
-  check('replace reuses the same file', replaced.body?.fileId === ticket.body.fileId, replaced.body)
+  check('a new version keeps the same file', second.body?.fileId === ticket.body.fileId, second.body)
+  check('and is numbered two', second.body?.version === 2, second.body)
+  check('on a key of its own', second.body?.key !== ticket.body.key, second.body)
+
+  await fetch(second.body.url, {
+    method: 'PUT',
+    body: revised,
+    headers: { 'content-type': 'text/csv' },
+  })
+  const recordedTwo = await asOwner('POST', `/folders/${q4.body.id}/files`, {
+    fileId: second.body.fileId,
+    name: 'cap-table.csv',
+    version: 2,
+  })
+  check('the file is now at version two', recordedTwo.body?.version === 2, recordedTwo.body)
+
+  const again = await asOwner('POST', `/folders/${q4.body.id}/files`, {
+    fileId: second.body.fileId,
+    name: 'cap-table.csv',
+    version: 2,
+  })
+  check('recording the same version twice is not an error', again.status === 201, again.body)
+
+  const history = await asOwner('GET', `/files/${ticket.body.fileId}/versions`)
+  check('both versions are listed', history.body?.length === 2, history.body)
+  check('the newest is current', history.body?.[0]?.current === true, history.body)
+
+  const old1 = await asOwner('GET', `/files/${ticket.body.fileId}/versions/1/download-url`)
+  const oldBytes = await fetch(old1.body.url)
+  check('version one still holds the bytes it always did', (await oldBytes.text()) === bytes.toString('utf8'))
+  check('and downloads under its own name', old1.body?.name === 'cap-table (v1).csv', old1.body)
+
+  const restored = await asOwner('POST', `/files/${ticket.body.fileId}/versions/1/restore`)
+  check('restoring counts up rather than down', restored.body?.version === 3, restored.body)
+  const current = await asOwner('GET', `/files/${ticket.body.fileId}/download-url`)
+  const currentBytes = await fetch(current.body.url)
+  check('and the file reads as version one again', (await currentBytes.text()) === bytes.toString('utf8'))
 
   console.log('\nlisting')
   const listing = await asOwner('GET', `/folders/${q4.body.id}`)
@@ -193,9 +231,29 @@ async function main() {
   check('their breadcrumbs start at the folder they were given', readerInQ4.body?.breadcrumbs?.length === 2, readerInQ4.body?.breadcrumbs)
   check('they are not told who else has access', readerInQ4.body?.files?.[0]?.access === null)
 
+  // They can read the document; that a newer one replaced an older one is the
+  // seller's to disclose, not the room's to announce.
+  const readerHistory = await asReader('GET', `/files/${ticket.body.fileId}/versions`)
+  check('a reader who can read the file still cannot read its history', readerHistory.status === 403, readerHistory.status)
+
   // The whole point of the model: one branch shared is one branch shared.
   const readerInLegal = await asReader('GET', `/folders/${legal.body.id}`)
   check('the reader cannot reach a sibling branch', readerInLegal.status === 404, readerInLegal.body)
+
+  console.log('\nsearch')
+  const found = await asOwner('GET', `/rooms/${roomId}/search?q=cap-table`)
+  check('the owner finds a file anywhere in the room', found.body?.files?.length === 1, found.body)
+  check('and is told where it sits', found.body?.files?.[0]?.trail?.length === 3, found.body?.files?.[0])
+
+  const wildcard = await asOwner('GET', `/rooms/${roomId}/search?q=%25`)
+  check('a percent sign is a character, not a wildcard', wildcard.body?.files?.length === 0, wildcard.body)
+
+  const readerFound = await asReader('GET', `/rooms/${roomId}/search?q=cap-table`)
+  check('a reader searches too', readerFound.body?.files?.length === 1, readerFound.body)
+  check('and their trail starts at their own grant', readerFound.body?.files?.[0]?.trail?.length === 2, readerFound.body?.files?.[0])
+
+  const readerMisses = await asReader('GET', `/rooms/${roomId}/search?q=nda`)
+  check('and finds nothing outside it', readerMisses.body?.files?.length === 0, readerMisses.body)
 
   const readerWrites = await asReader('POST', '/folders', {
     parentId: q4.body.id,

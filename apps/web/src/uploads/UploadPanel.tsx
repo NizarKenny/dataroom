@@ -68,7 +68,7 @@ export function UploadPanel({ queue }: { queue: UploadQueue }) {
             {item.status === 'conflict' && (
               <div className="mt-2 flex gap-1.5">
                 <Choice onClick={() => queue.resolve(item.id, 'rename')}>Keep both</Choice>
-                <Choice onClick={() => queue.resolve(item.id, 'replace')}>Replace</Choice>
+                <Choice onClick={() => queue.resolve(item.id, 'version')}>New version</Choice>
                 <Choice onClick={() => queue.resolve(item.id, 'skip')}>Skip</Choice>
               </div>
             )}

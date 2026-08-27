@@ -138,7 +138,7 @@ export interface DownloadLink {
   sizeBytes: number
 }
 
-export type OnConflict = 'fail' | 'rename' | 'replace'
+export type OnConflict = 'fail' | 'rename' | 'version'
 
 export interface UploadTicket {
   fileId: string
@@ -146,6 +146,29 @@ export interface UploadTicket {
   url: string
   token: string
   key: string
+  /** Which version these bytes will be. One for anything but a name clash. */
+  version: number
+}
+
+export interface FileVersion {
+  version: number
+  sizeBytes: number
+  mimeType: string
+  createdAt: string
+  createdBy: string
+  current: boolean
+}
+
+export interface SearchHit extends FileRow {
+  folderId: string
+  /** Where it sits, clipped at whatever the reader was given. */
+  trail: { id: string; name: string }[]
+}
+
+export interface SearchResults {
+  query: string
+  truncated: boolean
+  files: SearchHit[]
 }
 
 export const api = {
@@ -165,6 +188,8 @@ export const api = {
     rename: (id: string, name: string) =>
       request<{ id: string; name: string }>(`/rooms/${id}`, { method: 'PATCH', body: { name } }),
     remove: (id: string) => request<void>(`/rooms/${id}`, { method: 'DELETE' }),
+    search: (id: string, query: string) =>
+      request<SearchResults>(`/rooms/${id}/search?q=${encodeURIComponent(query)}`),
   },
 
   folders: {
@@ -180,13 +205,26 @@ export const api = {
   files: {
     ticket: (folderId: string, file: { name: string; sizeBytes: number; onConflict: OnConflict }) =>
       request<UploadTicket>(`/folders/${folderId}/uploads`, { method: 'POST', body: file }),
-    record: (folderId: string, fileId: string, name: string) =>
-      request<FileRow>(`/folders/${folderId}/files`, { method: 'POST', body: { fileId, name } }),
+    record: (folderId: string, fileId: string, name: string, version: number) =>
+      request<FileRow>(`/folders/${folderId}/files`, {
+        method: 'POST',
+        body: { fileId, name, version },
+      }),
     download: (id: string, disposition: 'inline' | 'attachment' = 'inline') =>
       request<DownloadLink>(`/files/${id}/download-url?disposition=${disposition}`),
     update: (id: string, changes: { name?: string; folderId?: string }) =>
       request<FileRow>(`/files/${id}`, { method: 'PATCH', body: changes }),
     remove: (id: string) => request<void>(`/files/${id}`, { method: 'DELETE' }),
+    versions: (id: string) => request<FileVersion[]>(`/files/${id}/versions`),
+    versionDownload: (id: string, version: number, disposition: 'inline' | 'attachment') =>
+      request<DownloadLink>(
+        `/files/${id}/versions/${version}/download-url?disposition=${disposition}`,
+      ),
+    restore: (id: string, version: number) =>
+      request<{ id: string; name: string; version: number }>(
+        `/files/${id}/versions/${version}/restore`,
+        { method: 'POST' },
+      ),
   },
 
   shares: {
@@ -213,6 +251,10 @@ export const api = {
       request<FolderView>(`/links/${token}/folders/${id}`, { signed: false }),
     download: (token: string, id: string, disposition: 'inline' | 'attachment' = 'inline') =>
       request<DownloadLink>(`/links/${token}/files/${id}/download-url?disposition=${disposition}`, {
+        signed: false,
+      }),
+    search: (token: string, query: string) =>
+      request<SearchResults>(`/links/${token}/search?q=${encodeURIComponent(query)}`, {
         signed: false,
       }),
   },

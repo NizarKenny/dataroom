@@ -1,4 +1,6 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { SearchField } from '@/components/SearchField'
+import { SearchResults } from '@/components/SearchResults'
 import { UpButton } from '@/components/UpButton'
 import { FilePreview } from '@/components/FilePreview'
 import { FileTable, type Row } from '@/components/FileTable'
@@ -6,6 +8,7 @@ import { ReaderBanner } from '@/components/ReaderBanner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/lib/api'
+import { useDebounced } from '@/lib/useDebounced'
 import { formatBytes } from '@/lib/format'
 import { useTheme } from '@/theme'
 import { useQuery } from '@tanstack/react-query'
@@ -21,6 +24,8 @@ export function LinkView() {
   const { token = '', folderId } = useParams()
   const navigate = useNavigate()
   const [previewing, setPreviewing] = useState<Row | null>(null)
+  const [query, setQuery] = useState('')
+  const term = useDebounced(query.trim(), 250)
 
   const opened = useQuery({
     queryKey: ['link', token],
@@ -35,6 +40,16 @@ export function LinkView() {
     queryFn: () => api.links.folder(token, shownFolder!),
     enabled: shownFolder !== null,
   })
+
+  // Someone sent two hundred documents through one link needs to find one of
+  // them, and the scope on the server keeps it inside what the link reaches.
+  const results = useQuery({
+    queryKey: ['link-search', token, term],
+    queryFn: () => api.links.search(token, term),
+    enabled: term.length > 0,
+    placeholderData: (previous) => previous,
+  })
+  const searching = query.trim().length > 0
 
   if (opened.isPending) {
     return (
@@ -54,10 +69,16 @@ export function LinkView() {
     const problem = opened.error instanceof ApiError ? opened.error : null
     const [heading, detail] =
       problem?.code === 'share_revoked'
-        ? ['This link no longer works', 'Whoever shared it has turned it off. Ask them for a new one.']
+        ? [
+            'This link no longer works',
+            'Whoever shared it has turned it off. Ask them for a new one.',
+          ]
         : problem?.status === 404
           ? ['This link is not valid', 'Check that you copied the whole address.']
-          : ['This link could not be opened', 'Something went wrong on our side. Try again in a moment.']
+          : [
+              'This link could not be opened',
+              'Something went wrong on our side. Try again in a moment.',
+            ]
 
     return (
       <Shell shared={false}>
@@ -76,7 +97,9 @@ export function LinkView() {
     return (
       <Shell room={link.room.name}>
         <div className="rounded-lg border border-hairline bg-surface p-6">
-          <h1 className="truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">{file.name}</h1>
+          <h1 className="truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
+            {file.name}
+          </h1>
           <p className="mt-1 text-[13px] text-ink-muted">
             {formatBytes(file.sizeBytes)} · {file.mimeType}
           </p>
@@ -126,11 +149,26 @@ export function LinkView() {
           <h1 className="min-w-0 flex-1 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
             {view.data.folder.name}
           </h1>
+
+          <SearchField value={query} onChange={setQuery} placeholder="Search what was shared" />
         </div>
       )}
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
-        {view.data && (
+        {searching && (
+          <SearchResults
+            query={term}
+            results={results.data}
+            pending={results.isPending || term !== query.trim()}
+            onOpen={(hit) => setPreviewing({ kind: 'file', ...hit })}
+            onGoToFolder={(hit) => {
+              setQuery('')
+              navigate(`/l/${token}/f/${hit.folderId}`)
+            }}
+          />
+        )}
+
+        {!searching && view.data && (
           <>
             {view.data.breadcrumbs[0] && (
               <ReaderBanner grantedAt={view.data.breadcrumbs[0].name} through="link" />

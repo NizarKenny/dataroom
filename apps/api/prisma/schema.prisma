@@ -38,8 +38,9 @@ model User {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   dataRooms     DataRoom[]
-  sharesCreated Share[]    @relation("share_creator")
-  sharesGranted Share[]    @relation("share_grantee")
+  fileVersions  FileVersion[] @relation("version_author")
+  sharesCreated Share[]       @relation("share_creator")
+  sharesGranted Share[]       @relation("share_grantee")
 
   @@map("users")
 }
@@ -98,29 +99,58 @@ model File {
   storageKey String @map("storage_key")
   sizeBytes  BigInt @map("size_bytes")
   mimeType   String @map("mime_type")
+  // Which row in file_versions these three columns are a copy of. Copied rather
+  // than joined so every read path stays a single row read.
+  version    Int    @default(1)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  dataRoom DataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
-  folder   Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  dataRoom DataRoom      @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  folder   Folder        @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  versions FileVersion[]
 
   @@unique([folderId, name])
   @@index([dataRoomId])
   @@map("files")
 }
 
+/**
+ * Every set of bytes this file has ever been, the current one included. A second
+ * upload under a name already taken lands here instead of on top of what was
+ * there, which is the whole point: the disclosure letter is written against the
+ * accounts as they stood on a date, not against whatever is in the room today.
+ */
+model FileVersion {
+  id         String @id @db.Uuid
+  fileId     String @map("file_id") @db.Uuid
+  version    Int
+  storageKey String @map("storage_key")
+  sizeBytes  BigInt @map("size_bytes")
+  mimeType   String @map("mime_type")
+
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  file      File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  createdBy User @relation("version_author", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, version])
+  @@index([createdById])
+  @@map("file_versions")
+}
+
 model Share {
-  id         String       @id @db.Uuid
-  dataRoomId String       @map("data_room_id") @db.Uuid
+  id           String       @id @db.Uuid
+  dataRoomId   String       @map("data_room_id") @db.Uuid
   resourceType ResourceType @map("resource_type")
   // Points at a data room, a folder or a file, so no foreign key. The pairing
   // with resourceType is enforced by a check constraint in the migration.
-  resourceId String       @map("resource_id") @db.Uuid
+  resourceId   String       @map("resource_id") @db.Uuid
   // Copy of the shared folder's path (the room's root folder for a room share,
   // null for a file share). Access then asks whether any of a node's ancestor
   // paths appears here, which is an equality lookup rather than a scan.
-  resourcePath String?    @map("resource_path")
+  resourcePath String?      @map("resource_path")
 
   mode  ShareMode
   role  ShareRole @default(viewer)

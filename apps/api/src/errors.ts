@@ -35,6 +35,14 @@ export const readOnly = () =>
 export const nameTaken = (what: 'file' | 'folder', name: string) =>
   new AppError(409, 'name_taken', `A ${what} called "${name}" is already here`, { name })
 
+/**
+ * The file moved on between signing the upload and recording it, which means two
+ * uploads of the same document overlapped. Saying so is safe: the caller owns
+ * the room and already knows the file.
+ */
+export const versionRaced = (name: string) =>
+  new AppError(409, 'version_raced', `"${name}" was updated while this was uploading`, { name })
+
 export const shareRevoked = () =>
   new AppError(403, 'share_revoked', 'This link no longer works')
 

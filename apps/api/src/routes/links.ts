@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { openFile, openLink, openRoom } from '../permissions.js'
 import { signDownload } from '../storage.js'
-import { folderView } from '../views.js'
+import { folderView, searchView } from '../views.js'
 
 const byToken = z.object({ token: z.string().min(1) })
 
@@ -51,6 +51,17 @@ export const linkRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const { viewer } = await openLink(request.params.token)
       return folderView(viewer, request.params.id)
+    },
+  )
+
+  // Someone reading a shared folder of two hundred documents needs this as much
+  // as its owner does, and the scope keeps it inside what the link reaches.
+  app.get(
+    '/links/:token/search',
+    { schema: { params: byToken, querystring: z.object({ q: z.string().trim().min(1).max(120) }) } },
+    async (request) => {
+      const { room, viewer } = await openLink(request.params.token)
+      return searchView(viewer, room, request.query.q)
     },
   )
 

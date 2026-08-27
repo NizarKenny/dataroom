@@ -23,7 +23,8 @@ export const DOWNLOAD_TTL_SECONDS = 300
  * Ids only, so renaming or moving a file never touches the object. The room is
  * the first segment, which is what makes deleting a whole room one prefix sweep.
  */
-export const objectKey = (dataRoomId: string, fileId: string) => `${dataRoomId}/${fileId}`
+export const objectKey = (dataRoomId: string, fileId: string, version = 1) =>
+  version === 1 ? `${dataRoomId}/${fileId}` : `${dataRoomId}/${fileId}-v${version}`
 
 export async function signUpload(key: string, replace: boolean) {
   const { data, error } = await bucket().createSignedUploadUrl(key, { upsert: replace })

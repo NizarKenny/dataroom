@@ -50,7 +50,7 @@ export function useUploads(folderId: string, onFileAdded: (into: string) => void
       })
 
       await putToStorage(ticket.url, item.file, (fraction) => patch(id, { progress: fraction }))
-      await api.files.record(item.folderId, ticket.fileId, ticket.name)
+      await api.files.record(item.folderId, ticket.fileId, ticket.name, ticket.version)
 
       patch(id, { status: 'done', progress: 1, name: ticket.name })
       onFileAdded(item.folderId)
@@ -102,7 +102,7 @@ export function useUploads(folderId: string, onFileAdded: (into: string) => void
       schedule()
     },
 
-    resolve(id: string, choice: 'rename' | 'replace' | 'skip') {
+    resolve(id: string, choice: 'rename' | 'version' | 'skip') {
       if (choice === 'skip') {
         store.current = store.current.filter((item) => item.id !== id)
         render()
