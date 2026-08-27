@@ -5,7 +5,14 @@ import { newId, prisma, withUniqueName } from '../db.js'
 import { cleanName, nextFreeName } from '../domain/names.js'
 import { badRequest, nameTaken, notFound } from '../errors.js'
 import { openFile, openFolder, requireOwner } from '../permissions.js'
-import { describeObject, objectKey, removeObjects, signDownload, signUpload } from '../storage.js'
+import {
+  describeObject,
+  isActiveContent,
+  objectKey,
+  removeObjects,
+  signDownload,
+  signUpload,
+} from '../storage.js'
 
 /**
  * Checked when the upload is asked for and again against what storage reports,
@@ -101,6 +108,16 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
       if (object.sizeBytes > MAX_UPLOAD_BYTES) {
         await removeObjects([key])
         throw tooLarge()
+      }
+
+      // The type on the object is whatever the uploading browser said, and it is
+      // served from a host we do not control. A document room has no use for a
+      // file the browser would run, so it does not keep one.
+      if (isActiveContent(object.mimeType)) {
+        await removeObjects([key])
+        throw badRequest('This kind of file cannot be stored in a data room', {
+          mimeType: object.mimeType,
+        })
       }
 
       // The key is built from a room the caller may write to, so a borrowed id

@@ -41,6 +41,13 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.decorateRequest('principal', null)
 
+  // The platform's default is `public`, and a corporate proxy between two sides
+  // of a deal is entitled to store what that permits. Nothing here is cacheable
+  // by anyone but the browser that asked for it.
+  app.addHook('onSend', async (_request, reply) => {
+    reply.header('cache-control', 'no-store')
+  })
+
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof AppError) {
       return reply
@@ -77,6 +84,13 @@ export async function buildApp(): Promise<FastifyInstance> {
     request.log.error({ err: error }, 'unhandled error')
     return reply.status(500).send({ error: 'internal', message: 'Something went wrong on our side' })
   })
+
+  // Somebody will paste this host into a browser. Answering with something is
+  // friendlier than a 404, and it says nothing that is not already public.
+  app.get('/', async () => ({
+    service: 'data-room-api',
+    app: env.WEB_ORIGIN.split(',')[0],
+  }))
 
   app.get('/health', async () => ({ ok: true }))
 

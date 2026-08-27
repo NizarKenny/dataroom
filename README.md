@@ -60,7 +60,7 @@ Checks:
 
 ```bash
 npm run typecheck --workspaces      # api and web
-npm run test --workspaces           # 46 unit tests over the path and access rules
+npm run test --workspaces --if-present   # 46 unit tests over the path and access rules
 npm run smoke --workspace @dataroom/api   # end to end against the real database and bucket
 ```
 
@@ -220,10 +220,13 @@ the one a client cannot argue with.
 
 The content type is not authoritative in the same way: it is whatever the
 uploader's browser put on the object, and it round trips through storage looking
-like a fact. So the download signer decides rather than the type: a short list of
-formats is served inline, and everything else is handed over as a download
-however it was asked for. An HTML file rendered inline would be a page running on
-the storage host.
+like a fact. Two things follow. A file whose recorded type is one the browser
+would run rather than show is not kept at all: the object is removed and the
+upload refused, because a document room has no use for one and the storage host
+is not ours. Everything else is inert there whatever it contains, because that
+host sends `X-Content-Type-Options: nosniff`. The inline or attachment choice on
+top of that is a courtesy, not a control: the disposition rides outside the
+signature on a storage URL, so whoever holds the URL can ask for either.
 
 Not built: resumable uploads. Supabase Storage speaks TUS; the queue here retries
 a whole file instead.
@@ -248,9 +251,12 @@ token while an invitation has a recipient. Those are hand written at the tail of
 the migration, under a comment saying so.
 
 **UUIDv7, generated in the application.** The ids appear in URLs and in every
-path, so they have to be opaque, but they are also primary keys on tables that
-grow, and v4 scatters btree inserts across the whole index. `pg_uuidv7` is not
-available on Supabase, so the application generates them.
+path, so they have to be unguessable, but they are also primary keys on tables
+that grow, and v4 scatters btree inserts across the whole index. `pg_uuidv7` is
+not available on Supabase, so the application generates them. Unguessable is not
+the same as opaque: the first 48 bits of a v7 are a timestamp, so an id tells its
+holder when the thing was created. For a room that is fine; if it stopped being
+fine the answer is a separate public identifier, not a different primary key.
 
 **A node you may not see answers 404, not 403.** A 403 would confirm that a
 folder with that id exists, which is exactly what a shared out data room must not
@@ -287,6 +293,13 @@ someone was invited into, because those totals describe parts they cannot see.
   The answer is not a stricter check on the token, whose `email_verified` claim
   the account itself can write: the invitation has to carry its own secret, and
   the link in the email is what claims it.
+- **Cutting off an access token before it expires.** Revoking a share is
+  immediate, because every request rereads the row. Signing out is not: the API
+  verifies the token's signature and nothing else, so an access token already
+  issued keeps working until it expires, which is an hour by default. The cheap
+  half of the answer is a shorter expiry in the Supabase settings; the real half
+  is checking the session id against Supabase on each request, and that is a
+  round trip per request to close a window that starts with a stolen token.
 - **Sweeping orphaned objects.** An upload the reader abandons leaves an object
   with no row behind it. In a real deployment a nightly job compares the bucket
   against `files`.

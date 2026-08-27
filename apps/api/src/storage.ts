@@ -38,6 +38,21 @@ export async function signUpload(key: string, replace: boolean) {
  * download however the caller asked for it. An HTML file rendered inline would be
  * a page running on that host.
  */
+const ACTIVE = new Set([
+  'text/html',
+  'application/xhtml+xml',
+  'image/svg+xml',
+  'application/xml',
+  'text/xml',
+])
+
+/**
+ * Whether the browser would run this rather than show it. The storage host sends
+ * X-Content-Type-Options: nosniff, so a file that merely contains markup is inert
+ * unless its recorded type says otherwise, and that type is the uploader's word.
+ */
+export const isActiveContent = (mimeType: string) => ACTIVE.has(mimeType.split(';')[0]!.trim())
+
 const RENDERABLE = new Set([
   'application/pdf',
   'text/plain',
