@@ -58,11 +58,11 @@ export function ConfirmDialog({
         )}
 
         <DialogFooter className="mt-6">
-          <Button variant="utility" onClick={() => onOpenChange(false)}>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
-            variant="danger"
+            variant="destructive"
             disabled={busy}
             onClick={async () => {
               setBusy(true)

@@ -152,7 +152,9 @@ const grantedHere = (access: AccessBadge) => access.here.people > 0 || access.he
 
 function AccessChips({ access }: { access: AccessBadge }) {
   if (!grantedHere(access)) {
-    return access.inherited ? null : <Chip className="bg-sunken text-ink-muted">Private</Chip>
+    return (
+      <Chip className="bg-sunken text-ink-muted">{access.inherited ? 'Inherited' : 'Private'}</Chip>
+    )
   }
 
   const { people, link } = access.here

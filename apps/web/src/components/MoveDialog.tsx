@@ -81,7 +81,7 @@ export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove 
             </div>
 
             <DialogFooter className="mt-6">
-              <Button variant="utility" onClick={() => onOpenChange(false)}>
+              <Button variant="secondary" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button

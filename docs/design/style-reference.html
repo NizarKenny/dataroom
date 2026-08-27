@@ -16,7 +16,7 @@
   --ink: #191817;
   --ink-secondary: #31302e;
   --ink-muted: #615d59;
-  --ink-faint: #8a857f;
+  --ink-faint: #6f6a64;
   --primary: #0075de;
   --primary-active: #005bab;
   --primary-wash: #eaf4fd;
@@ -29,7 +29,10 @@
   --warning: #b45309;
 
   --r-xs: 4px; --r-sm: 5px; --r-md: 8px; --r-lg: 12px; --r-xl: 16px; --r-full: 9999px;
-  --s-xxs: 4px; --s-xs: 8px; --s-sm: 12px; --s-md: 16px; --s-lg: 24px; --s-xl: 28px; --s-xxl: 32px;
+  /* Spacing is the 4px scale, the same one Tailwind gives the app. These names
+     are an alias for the steps used most; the numbers are what matter. */
+  --s-xxs: 4px; --s-xs: 8px; --s-sm: 12px; --s-md: 16px; --s-lg: 24px; --s-xl: 32px;
+  --s-xxl: 48px; --s-xxxl: 64px;
 
   --shadow-soft:
     0 0.175px 1.04px rgba(0,0,0,.01),
@@ -44,16 +47,17 @@
 .dark {
   --canvas: #191919;
   --surface: #262626;
-  --surface-sunken: #212121;
+  --surface-sunken: #323232;
   --hairline: #3d3d3d;
   --hairline-strong: #454545;
   --ink: #ededed;
   --ink-secondary: #cfcdca;
-  --ink-muted: #9a958f;
-  --ink-faint: #8a8580;
+  --ink-muted: #aca69f;
+  --ink-faint: #948e87;
   --primary: #2f8fef;
   --primary-active: #5aa9f5;
   --primary-wash: #16293c;
+  --on-primary: #0b1a26;
   --secondary: #8aa0ff;
   --secondary-wash: #23273d;
   --danger: #f87171;
@@ -81,7 +85,7 @@ h1, h2, h3 { letter-spacing: -.02em; margin: 0; }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
 .page { max-width: 1180px; margin: 0 auto; padding: 56px 40px 88px; }
-.masthead { border-bottom: 1px solid var(--hairline-strong); padding-bottom: var(--s-lg); margin-bottom: var(--s-xxl); }
+.masthead { border-bottom: 1px solid var(--hairline-strong); padding-bottom: var(--s-lg); margin-bottom: var(--s-xl); }
 .masthead h1 { font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -1px; }
 .masthead p { margin: var(--s-sm) 0 0; color: var(--ink-muted); font-size: 16px; line-height: 1.5; max-width: 62ch; }
 
@@ -260,7 +264,7 @@ tr.inherited td:first-child::before {
 .elev.flat { border: 1px solid var(--hairline); }
 .elev.raised { box-shadow: var(--shadow-soft); }
 
-.theme-dark { background: var(--canvas); border-radius: var(--r-xl); padding: var(--s-xxl); margin-top: var(--s-lg); }
+.theme-dark { background: var(--canvas); border-radius: var(--r-xl); padding: var(--s-xl); margin-top: var(--s-lg); }
 </style>
 </head>
 <body>
@@ -371,10 +375,25 @@ tr.inherited td:first-child::before {
           <input class="input is-invalid" value="Audited statements 2024.pdf">
           <p class="hint is-error">A file with this name is already in Financials.</p>
         </div>
+        <div class="field">
+          <label class="label">Room</label>
+          <input class="input" value="Project Atlas" disabled>
+        </div>
+        <div class="field">
+          <label class="label">Link</label>
+          <input class="input mono" value="/l/atlas-q4-2025-review" readonly
+                 style="font-size:12px;color:var(--ink-muted)">
+        </div>
         <p class="note" style="margin-top:var(--s-md)">Errors say what happened and where, in the
           interface's voice. No apology, no "oops", and never a bare "invalid".</p>
       </div>
     </div>
+    <p class="note"><strong>Rule.</strong> One size, one radius, one border. Focus is the shared
+      outline drawn <em>inside</em> the edge rather than outside it, which is the only thing any
+      control may change about it: a ring outside a full width field collides with the dialog
+      holding it. Disabled drops to 45% and stops taking the pointer. Readonly keeps its border,
+      because it is still a value you can select and copy, and only the monospace tells you it is
+      not yours to edit.</p>
   </section>
 
   <section>
@@ -576,7 +595,7 @@ tr.inherited td:first-child::before {
         <div class="sw"><div class="chip" style="background:#191919"></div><div class="meta"><div class="name">canvas</div><div class="hex">#191919</div></div></div>
         <div class="sw"><div class="chip" style="background:#262626"></div><div class="meta"><div class="name">surface</div><div class="hex">#262626</div></div></div>
         <div class="sw"><div class="chip" style="background:#212121"></div><div class="meta"><div class="name new">surface-sunken</div><div class="hex">#212121</div></div></div>
-        <div class="sw"><div class="chip" style="background:#343434"></div><div class="meta"><div class="name">hairline</div><div class="hex">#343434</div></div></div>
+        <div class="sw"><div class="chip" style="background:#3d3d3d"></div><div class="meta"><div class="name">hairline</div><div class="hex">#3d3d3d</div></div></div>
         <div class="sw"><div class="chip" style="background:#ededed"></div><div class="meta"><div class="name">ink</div><div class="hex">#ededed</div></div></div>
         <div class="sw"><div class="chip" style="background:#2f8fef"></div><div class="meta"><div class="name">primary</div><div class="hex">#2f8fef</div></div></div>
         <div class="sw"><div class="chip" style="background:#16293c"></div><div class="meta"><div class="name new">primary-wash</div><div class="hex">#16293c</div></div></div>

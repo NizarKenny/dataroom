@@ -44,7 +44,11 @@ export function DeleteDialog({ row, onOpenChange, onConfirm }: Props) {
             ]
           : undefined
       }
-      confirmLabel="Delete"
+      confirmLabel={
+        row.kind === 'folder' && manifest.data
+          ? `Delete ${manifest.data.folders + manifest.data.files + 1} items`
+          : 'Delete'
+      }
       onConfirm={() => onConfirm(row)}
     />
   )

@@ -89,7 +89,7 @@ export function PromptDialog({
           </div>
 
           <DialogFooter className="mt-6">
-            <Button type="button" variant="utility" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" variant="primary" disabled={busy || value.trim().length === 0}>
