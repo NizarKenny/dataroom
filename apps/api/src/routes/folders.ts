@@ -161,23 +161,34 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
       throw badRequest('The top folder belongs to the data room. Delete the room instead.')
     }
 
-    const [doomed, shares] = await Promise.all([
-      prisma.file.findMany({
-        where: { folder: { path: { startsWith: folder.path } } },
-        select: { storageKey: true },
-      }),
-      sharesInSubtree(room.id, folder.path),
-    ])
+    const doomed = await prisma.$transaction(async (tx) => {
+      // The same lock a move takes. Without it a share created between working
+      // out what to revoke and deleting the folder survives, pointing at nothing.
+      await tx.$executeRaw`select pg_advisory_xact_lock(hashtextextended(${room.id}, 0))`
 
-    await prisma.$transaction([
+      const files = await tx.file.findMany({
+        where: { folder: { path: { startsWith: folder.path } } },
+        select: { id: true, storageKey: true },
+      })
+
       // Revoked rather than deleted: whoever holds a link to something in here
-      // gets told it was switched off instead of walking into a blank 404.
-      prisma.share.updateMany({
-        where: { id: { in: shares.map((share) => share.id) } },
+      // gets told it was switched off instead of walking into a blank 404. File
+      // shares carry no path, so they are matched through the files themselves.
+      await tx.share.updateMany({
+        where: {
+          dataRoomId: room.id,
+          revokedAt: null,
+          OR: [
+            { resourcePath: { startsWith: folder.path } },
+            { resourceType: 'file', resourceId: { in: files.map((file) => file.id) } },
+          ],
+        },
         data: { revokedAt: new Date() },
-      }),
-      prisma.folder.delete({ where: { id: folder.id } }),
-    ])
+      })
+
+      await tx.folder.delete({ where: { id: folder.id } })
+      return files
+    })
 
     await removeObjects(doomed.map((file) => file.storageKey)).catch((error: unknown) => {
       request.log.error({ err: error, folderId: folder.id }, 'folder deleted, objects left behind')

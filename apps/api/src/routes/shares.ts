@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { randomBytes } from 'node:crypto'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
@@ -79,9 +80,11 @@ export const shareRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       if (request.body.mode === 'public_link') {
-        const share = await prisma.share.create({
-          data: { id: newId(), ...base, mode: 'public_link', token: newToken() },
-        })
+        const share = await grantInRoom(room.id, (tx) =>
+          tx.share.create({
+            data: { id: newId(), ...base, mode: 'public_link', token: newToken() },
+          }),
+        )
         return reply.status(201).send({ id: share.id, mode: share.mode, token: share.token })
       }
 
@@ -111,15 +114,17 @@ export const shareRoutes: FastifyPluginAsyncZod = async (app) => {
         return reply.status(200).send({ id: already.id, mode: already.mode, email })
       }
 
-      const share = await prisma.share.create({
-        data: {
-          id: newId(),
-          ...base,
-          mode: 'user',
-          granteeEmail: email,
-          granteeUserId: grantee?.id ?? null,
-        },
-      })
+      const share = await grantInRoom(room.id, (tx) =>
+        tx.share.create({
+          data: {
+            id: newId(),
+            ...base,
+            mode: 'user',
+            granteeEmail: email,
+            granteeUserId: grantee?.id ?? null,
+          },
+        }),
+      )
 
       return reply.status(201).send({ id: share.id, mode: share.mode, email })
     },
@@ -145,6 +150,21 @@ export const shareRoutes: FastifyPluginAsyncZod = async (app) => {
       return reply.status(204).send()
     },
   )
+}
+
+/**
+ * Granting waits behind whatever else is rearranging this room. A delete works
+ * out what to revoke and then removes the folder, and a share slipped in between
+ * the two would outlive the thing it points at.
+ */
+function grantInRoom<T>(
+  dataRoomId: string,
+  write: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`select pg_advisory_xact_lock(hashtextextended(${dataRoomId}, 0))`
+    return write(tx)
+  })
 }
 
 /**

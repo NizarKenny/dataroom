@@ -46,18 +46,21 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
         OR: [{ ownerId: userId }, { id: { in: invitations.map((row) => row.dataRoomId) } }],
       },
       orderBy: { name: 'asc' },
-      include: {
-        _count: { select: { files: true } },
-        folders: { where: { parentId: null }, select: { id: true } },
-      },
+      include: { folders: { where: { parentId: null }, select: { id: true } } },
     })
 
-    const sizes = await prisma.file.groupBy({
+    // Counted only for the rooms whose totals are shown. Reading every file in a
+    // room somebody was invited into one folder of is work done to be thrown away.
+    const mine = rooms.filter((room) => room.ownerId === userId).map((room) => room.id)
+    const totals = await prisma.file.groupBy({
       by: ['dataRoomId'],
-      where: { dataRoomId: { in: rooms.map((room) => room.id) } },
+      where: { dataRoomId: { in: mine } },
+      _count: { _all: true },
       _sum: { sizeBytes: true },
     })
-    const bytesIn = new Map(sizes.map((row) => [row.dataRoomId, Number(row._sum.sizeBytes ?? 0)]))
+    const totalsFor = new Map(
+      totals.map((row) => [row.dataRoomId, { files: row._count._all, bytes: Number(row._sum.sizeBytes ?? 0) }]),
+    )
 
     return rooms.map((room) => {
       const owned = room.ownerId === userId
@@ -73,8 +76,8 @@ export const roomRoutes: FastifyPluginAsyncZod = async (app) => {
         updatedAt: room.updatedAt,
         // Totals describe the whole room, and someone invited into one folder
         // must not learn how much sits outside it.
-        files: owned ? room._count.files : null,
-        bytes: owned ? (bytesIn.get(room.id) ?? 0) : null,
+        files: owned ? (totalsFor.get(room.id)?.files ?? 0) : null,
+        bytes: owned ? (totalsFor.get(room.id)?.bytes ?? 0) : null,
       }
     })
   })

@@ -270,9 +270,20 @@ async function main() {
   const afterRevoke = await asReader('GET', `/folders/${rootId}`)
   check('and the reader is out', afterRevoke.status === 404)
 
+  // A folder keeps its shares as revoked rows. A room takes them with it, so a
+  // link into a deleted room has nothing left to answer for it.
+  const roomLink = await asOwner('POST', '/shares', {
+    resourceType: 'data_room',
+    resourceId: roomId,
+    mode: 'public_link',
+  })
+
   await asOwner('DELETE', `/rooms/${roomId}`)
   const gone = await asOwner('GET', `/rooms/${roomId}`)
   check('the room is gone', gone.status === 404)
+
+  const afterRoom = await anonymous('GET', `/links/${roomLink.body.token}`)
+  check('and a link into it answers 404, not revoked', afterRoom.status === 404, afterRoom.body)
 
   await app.close()
 }
