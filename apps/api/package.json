@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
-    "typecheck": "prisma generate && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "smoke": "tsx scripts/smoke.ts",
     "seed": "tsx scripts/seed.ts",
