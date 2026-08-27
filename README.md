@@ -66,7 +66,7 @@ npm run smoke --workspace @dataroom/api   # end to end against the real database
 ```
 
 `smoke` creates two throwaway accounts, walks the whole API including a real
-upload and download, asserts 43 things and deletes what it made. It needs a
+upload and download, asserts 44 things and deletes what it made. It needs a
 filled in `.env`, so CI runs the unit tests only.
 
 ## The data model

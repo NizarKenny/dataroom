@@ -97,41 +97,56 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
         return { id: renamed.id, name: renamed.name, parentId: renamed.parentId }
       }
 
-      const parent = await prisma.folder.findUnique({ where: { id: request.body.parentId } })
-      if (!parent || parent.dataRoomId !== room.id) {
-        throw badRequest('A folder can only move inside its own data room')
-      }
-      if (parent.path.startsWith(folder.path)) {
-        throw badRequest('A folder cannot be moved into itself')
-      }
+      const parentId = request.body.parentId
 
-      const from = folder.path
-      const to = childPath(parent.path, folder.id)
-      const depthChange = parent.depth + 1 - folder.depth
+      // Two moves running at once could each pass their own cycle check and then
+      // hang the tree off itself. Moves are rare, so one advisory lock per room
+      // for the length of the transaction is cheaper than reasoning about it.
+      const parent = await withUniqueName('folder', name ?? folder.name, () =>
+        prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`select pg_advisory_xact_lock(hashtextextended(${room.id}, 0))`
 
-      await withUniqueName('folder', name ?? folder.name, () =>
-        prisma.$transaction([
-          prisma.folder.update({
-            where: { id: folder.id },
-            data: { name, parentId: parent.id },
-          }),
-          // The subtree moves by rewriting one prefix. Every descendant is
-          // already selected by that same prefix, so this is a single scan.
-          prisma.$executeRaw`
+          const [current, destination] = await Promise.all([
+            tx.folder.findUniqueOrThrow({ where: { id: folder.id } }),
+            tx.folder.findUnique({ where: { id: parentId } }),
+          ])
+
+          if (!destination || destination.dataRoomId !== room.id) {
+            throw badRequest('A folder can only move inside its own data room')
+          }
+          if (destination.path.startsWith(current.path)) {
+            throw badRequest('A folder cannot be moved into itself')
+          }
+
+          const from = current.path
+          const to = childPath(destination.path, current.id)
+          const depthChange = destination.depth + 1 - current.depth
+
+          await tx.folder.update({
+            where: { id: current.id },
+            data: { name, parentId: destination.id },
+          })
+
+          // The subtree moves by rewriting one prefix. Every descendant is already
+          // selected by that same prefix, so this is a single scan.
+          await tx.$executeRaw`
             update folders
                set path = ${to} || substring(path from length(${from}) + 1),
                    depth = depth + ${depthChange}::int
              where path like ${`${from}%`}
-          `,
+          `
+
           // Shares point at paths too. Leaving them behind would quietly cut off
           // everyone who had been given the folder before it moved.
-          prisma.$executeRaw`
+          await tx.$executeRaw`
             update shares
                set resource_path = ${to} || substring(resource_path from length(${from}) + 1)
              where data_room_id = ${room.id}::uuid
                and resource_path like ${`${from}%`}
-          `,
-        ]),
+          `
+
+          return destination
+        }),
       )
 
       return { id: folder.id, name: name ?? folder.name, parentId: parent.id }

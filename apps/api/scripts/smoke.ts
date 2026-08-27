@@ -218,6 +218,9 @@ async function main() {
   const linkAfterMove = await anonymous('GET', `/links/${token}/folders/${q4.body.id}`)
   check('a link into the moved folder still works', linkAfterMove.status === 200, linkAfterMove.body)
 
+  const cycle = await asOwner('PATCH', `/folders/${legal.body.id}`, { parentId: q4.body.id })
+  check('a folder cannot be moved inside its own subtree', cycle.status === 400, cycle.body)
+
   // The invitation was on Financials, which Q4 has just left.
   const readerAfterMove = await asReader('GET', `/folders/${q4.body.id}`)
   check('access granted above the folder does not follow it out', readerAfterMove.status === 404)
