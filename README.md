@@ -280,35 +280,26 @@ someone was invited into, because those totals describe parts they cannot see.
 - **Roles beyond viewer.** The enum has one value and a check constraint that
   fails closed, so adding an editor is a migration and one branch rather than a
   rewrite of the access rules.
-- **Search.** `pg_trgm` on `files.name` is the shape of the answer.
-- **File versions.** Replacing a file overwrites the object and keeps the row, so
-  every link that pointed at it still does. Keeping the old bytes is a column and
-  a second key.
-- **An audit trail of who opened what.** Shares are already append plus revoke,
-  which is the same shape.
+- **Holding one document back from a shared folder.** A share reaches everything
+  inside it and there is no exclusion anywhere in the model, which is why there
+  is nothing to forget. It costs something real: in every legal folder there is
+  one document that goes to the principal and not to the bidder, and today the
+  answer is to move it somewhere the bidder cannot reach. A deny rule would buy
+  that back and cost the property that makes the rest of this defensible.
 - **Proving that an invited address belongs to whoever signs in with it.** An
   invitation is claimed on first sign-in by matching the email on the account,
   and email confirmation is deliberately off so the demo needs no mailbox.
   Together those mean somebody who knows an invited address could sign up as it.
   The answer is not a stricter check on the token, whose `email_verified` claim
   the account itself can write: the invitation has to carry its own secret, and
-  the link in the email is what claims it.
-- **Cutting off an access token before it expires.** Revoking a share is
-  immediate, because every request rereads the row. Signing out is not: the API
-  verifies the token's signature and nothing else, so an access token already
-  issued keeps working until it expires, which is an hour by default. The cheap
-  half of the answer is a shorter expiry in the Supabase settings; the real half
-  is checking the session id against Supabase on each request, and that is a
-  round trip per request to close a window that starts with a stolen token.
-- **Sweeping orphaned objects.** An upload the reader abandons leaves an object
-  with no row behind it. In a real deployment a nightly job compares the bucket
-  against `files`.
-- **Rate limiting on the link routes.** A token is 32 characters of base64url,
-  so guessing one is not the threat; a link being hammered is, and that is a
-  counter in Redis rather than in a serverless instance's memory.
+  the link in the email is what claims it. This is the first thing on the
+  roadmap and the reason the second thing waits for it.
 - **Storybook, an e2e suite, Docker.** The style reference in
   `docs/design/style-reference.html` is the component gallery, and the smoke
   script covers the paths an e2e suite would.
+
+Everything else I would build, in the order a deal asks for it and with what each
+one unblocks, is in [docs/roadmap.md](docs/roadmap.md).
 
 Things a reviewer will notice:
 
