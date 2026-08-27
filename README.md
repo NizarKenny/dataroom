@@ -7,6 +7,8 @@ granted on a folder reaches everything inside it and nothing beside it.
 - Live: **https://nizar-dataroom.vercel.app**
 - API: https://nizar-dataroom-api.vercel.app
 - Public link, no account needed: **https://nizar-dataroom.vercel.app/l/atlas-q4-2025-review**
+- Documentation, including the design system rendered rather than as source:
+  **https://nizarkenny.github.io/dataroom/**
 
 ![A data room listing](docs/screenshots/room.png)
 
@@ -317,6 +319,15 @@ Things a reviewer will notice:
   records only the platform it resolved on, so vitest had no binding to load on
   the Linux runner. Naming it explicitly puts both platforms in the lockfile and
   keeps `npm ci` in CI.
+
+## Documentation
+
+| | |
+| --- | --- |
+| [The design system](https://nizarkenny.github.io/dataroom/design/style-reference.html) | Tokens in both themes, every component in every state, and the rule under each one. GitHub shows the source as source, so it is published as a page |
+| [The API](docs/api.md) | Every route, the three kinds of caller, the two step upload, and what each error code means |
+| [What comes next](docs/roadmap.md) | Thirteen things, sized, ordered by what a deal stalls without |
+| [The index](docs/README.md) | Where to start, depending on what you are here for |
 
 ## Where AI was used
 

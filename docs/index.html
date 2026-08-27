@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Room — documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --canvas: #f6f5f4;
+  --surface: #ffffff;
+  --hairline: #e6e6e6;
+  --hairline-strong: #d4d2cf;
+  --ink: #191817;
+  --ink-muted: #615d59;
+  --ink-faint: #6f6a64;
+  --primary: #0075de;
+  --primary-active: #005bab;
+  --shadow-soft:
+    0 0.175px 1.04px rgba(0,0,0,.01), 0 .8px 2.9px rgba(0,0,0,.02),
+    0 2px 7.8px rgba(0,0,0,.027), 0 4px 18px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #191919; --surface: #262626; --hairline: #3d3d3d;
+    --hairline-strong: #454545; --ink: #ededed; --ink-muted: #aca69f;
+    --ink-faint: #948e87; --primary: #2f8fef; --primary-active: #5aa9f5;
+    --shadow-soft: 0 2px 7.8px rgba(0,0,0,.22), 0 4px 18px rgba(0,0,0,.28);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--canvas); color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 760px; margin: 0 auto; padding: 56px 24px 88px; }
+h1 { font-size: 40px; line-height: 1.1; letter-spacing: -1px; margin: 0; }
+.lede { color: var(--ink-muted); margin: 12px 0 0; max-width: 62ch; }
+.eyebrow {
+  font-size: 12px; font-weight: 600; letter-spacing: .125px; text-transform: uppercase;
+  color: var(--ink-faint); display: flex; align-items: center; gap: 12px; margin: 48px 0 16px;
+}
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+.card {
+  display: block; text-decoration: none; color: inherit; background: var(--surface);
+  border: 1px solid var(--hairline); border-radius: 12px; padding: 16px 20px;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.card + .card { margin-top: 12px; }
+.card:hover { border-color: var(--hairline-strong); box-shadow: var(--shadow-soft); }
+.card h2 { font-size: 20px; font-weight: 600; letter-spacing: -.125px; margin: 0; }
+.card p { margin: 6px 0 0; color: var(--ink-muted); font-size: 14px; }
+.card .go { color: var(--primary); font-weight: 500; }
+.live { display: flex; flex-wrap: wrap; gap: 12px; }
+.live a {
+  flex: 1 1 220px; text-decoration: none; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--hairline); border-radius: 12px; padding: 14px 18px;
+}
+.live a:hover { border-color: var(--hairline-strong); }
+.live small { display: block; color: var(--ink-faint); font-size: 12px; margin-bottom: 2px; }
+.live b { font-weight: 500; }
+footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--hairline);
+  color: var(--ink-faint); font-size: 13px; }
+footer a { color: var(--primary-active); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Data Room</h1>
+  <p class="lede">A virtual data room: documents live in a private tree, and the owner decides who
+    can see which part of it. Access granted on a folder reaches everything inside it and nothing
+    beside it. This page is the way into everything written about it.</p>
+
+  <p class="eyebrow">Live</p>
+  <div class="live">
+    <a href="https://nizar-dataroom.vercel.app"><small>Application</small><b>nizar-dataroom.vercel.app</b></a>
+    <a href="https://nizar-dataroom.vercel.app/l/atlas-q4-2025-review"><small>A public share link, no account</small><b>Q4 2025</b></a>
+    <a href="https://github.com/NizarKenny/dataroom"><small>Source</small><b>github.com/NizarKenny/dataroom</b></a>
+  </div>
+
+  <p class="eyebrow">Documents</p>
+
+  <a class="card" href="design/style-reference.html">
+    <h2>The design system <span class="go">&rarr;</span></h2>
+    <p>Tokens in both themes, the type scale, every component in every state, and the reasoning
+      under each one. The application is built from this page, and the rules on it are why the
+      access column, the rail and the banner say three different things rather than one thing
+      three times.</p>
+  </a>
+
+  <a class="card" href="https://github.com/NizarKenny/dataroom#readme">
+    <h2>How it is built, and why <span class="go">&rarr;</span></h2>
+    <p>The data model and what the materialized path buys, how one indexed query answers whether a
+      person may see a node, three scaling questions with the alternatives that were rejected and
+      a measured query plan, and what was deliberately not built.</p>
+  </a>
+
+  <a class="card" href="https://github.com/NizarKenny/dataroom/blob/main/docs/api.md">
+    <h2>The API <span class="go">&rarr;</span></h2>
+    <p>Every route, the three kinds of caller, the two step upload that keeps bytes out of the
+      server, and what each error code means. Including why an unreachable node answers 404 rather
+      than 403.</p>
+  </a>
+
+  <a class="card" href="https://github.com/NizarKenny/dataroom/blob/main/docs/roadmap.md">
+    <h2>What comes next <span class="go">&rarr;</span></h2>
+    <p>Thirteen things, sized, ordered by what a deal stalls without rather than by what is
+      interesting to build. With three that are not planned, and the reason for each.</p>
+  </a>
+
+  <footer>
+    Built by <a href="https://github.com/NizarKenny">Nizar</a> as a take home submission.
+    Demo accounts and how to run it locally are in the
+    <a href="https://github.com/NizarKenny/dataroom#readme">README</a>.
+  </footer>
+
+</div>
+</body>
+</html>
