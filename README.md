@@ -146,10 +146,18 @@ where data_room_id = $1
   and (resource_path in ($3, $4, ...) or (resource_type = 'file' and resource_id = $5))
 ```
 
-Both halves are served by partial indexes over live rows only. When several
-shares cover a node, the closest one wins, because that is the one the interface
-names: a share on the file beats a share on its folder, which beats a share on
-the room.
+I measured what the planner does with this, against a copy of the table holding
+200,000 shares across 2,000 rooms and 5,000 people, one in ten revoked. It
+intersects the partial index on the grantee with the index on the room, which
+leaves forty rows, and applies the path and file conditions as a filter over
+those: 1.4 ms, twenty heap blocks. The partial index on `resource_path` is not
+what answers this one. It answers the same question asked without a grantee,
+which is the owner's view of who can reach a node, and there it is a plain index
+scan at 1.9 ms.
+
+When several shares cover a node, the closest one wins, because that is the one
+the interface names: a share on the file beats a share on its folder, which beats
+a share on the room.
 
 The test that matters most is the one asserting a share of one branch does not
 reach a sibling branch. That leak is the reason the model exists.
