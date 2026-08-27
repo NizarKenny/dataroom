@@ -8,6 +8,7 @@ import { PromptDialog } from '@/components/PromptDialog'
 import { ReaderBanner } from '@/components/ReaderBanner'
 import { ShareDialog, type ShareTarget } from '@/components/ShareDialog'
 import { TopBar } from '@/components/TopBar'
+import { UpButton } from '@/components/UpButton'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError } from '@/lib/api'
@@ -112,6 +113,11 @@ export function Browser() {
   const owner = room.role === 'owner'
   const atRoot = folder.parentId === null && breadcrumbs.length === 1
 
+  // A reader's trail is clipped at their grant, so the crumb before this one is
+  // always somewhere they are allowed to be. Above it there is only the list of
+  // rooms, which is where an owner at the top of a room goes.
+  const parent = breadcrumbs[breadcrumbs.length - 2] ?? null
+
   const rows: Row[] = [
     ...folders.map((entry) => ({ kind: 'folder' as const, ...entry })),
     ...files.map((entry) => ({ kind: 'file' as const, ...entry })),
@@ -152,6 +158,10 @@ export function Browser() {
         }
       >
         <div className="mb-4 flex flex-wrap items-center gap-3">
+          <UpButton
+            to={parent?.name ?? 'the data rooms'}
+            onClick={() => navigate(parent ? `/f/${parent.id}` : '/')}
+          />
           <h1 className="min-w-0 flex-1 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
             {folder.name}
           </h1>

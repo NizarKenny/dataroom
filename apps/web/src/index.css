@@ -156,6 +156,22 @@
     outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
+
+  /* A button is the one control browsers leave with an arrow, and almost
+     everything here is a button. Disabled keeps the arrow and adds the barred
+     cursor, which is the honest signal that the click will not land. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
 }
 
 @utility tabular {

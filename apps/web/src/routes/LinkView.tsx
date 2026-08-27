@@ -1,4 +1,5 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { UpButton } from '@/components/UpButton'
 import { FilePreview } from '@/components/FilePreview'
 import { FileTable, type Row } from '@/components/FileTable'
 import { ReaderBanner } from '@/components/ReaderBanner'
@@ -110,12 +111,22 @@ export function LinkView() {
     )
   }
 
+  const trail = view.data?.breadcrumbs ?? []
+  const parent = trail[trail.length - 2] ?? null
+
   return (
     <Shell room={link.room.name}>
       {view.data && (
-        <h1 className="mb-4 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
-          {view.data.folder.name}
-        </h1>
+        <div className="mb-4 flex items-center gap-3">
+          {/* Only inside the shared folder. At its top there is nowhere a link
+              holder is allowed to go, so there is no button offering it. */}
+          {parent && (
+            <UpButton to={parent.name} onClick={() => navigate(`/l/${token}/f/${parent.id}`)} />
+          )}
+          <h1 className="min-w-0 flex-1 truncate text-[26px] leading-[1.23] font-bold tracking-[-0.625px]">
+            {view.data.folder.name}
+          </h1>
+        </div>
       )}
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
