@@ -9,6 +9,11 @@ stands between that and a real process.
 Sizes are mine and rough: one developer who already knows this codebase, working
 days, including the tests and the screen.
 
+Two things that were on this page are now in the product: uploading over a name
+keeps what was there as a version, and search finds a file by name anywhere in a
+room. What a version history still cannot do is say what changed between two
+PDFs, which is a rendering problem rather than a data one.
+
 | | What | What it unblocks | Size |
 | --- | --- | --- | --- |
 | **1** | [Invitations that carry their own secret](#invitations-that-carry-their-own-secret) | An access list you can trust at all | 2 days |
@@ -16,11 +21,9 @@ days, including the tests and the screen.
 | **3** | [A log of who opened what](#a-log-of-who-opened-what) | The closing condition, and the day something leaks | 2 days |
 | **4** | [Access that expires](#access-that-expires) | Six bidders dropping out on a deadline | 1 day |
 | **5** | [Rate limiting the link routes](#rate-limiting-the-link-routes) | The one unauthenticated surface in the product | half a day |
-| 6 | [Document versions](#document-versions) | The disclosure letter | 3 days |
-| 7 | [Notifications](#notifications) | Four documents nobody was told about | 3 days |
-| 8 | [Bulk download](#bulk-download) | Keeping the deal inside the room | 2 days |
-| 9 | [Search](#search) | Anything past a couple of thousand documents | 1 day |
-| 10 | [Q and A between the sides](#q-and-a-between-the-sides) | More than one bidder | 2 weeks |
+| 6 | [Notifications](#notifications) | Four documents nobody was told about | 3 days |
+| 7 | [Bulk download](#bulk-download) | Keeping the deal inside the room | 2 days |
+| 8 | [Q and A between the sides](#q-and-a-between-the-sides) | More than one bidder | 2 weeks |
 | | [Sweeping orphaned objects](#sweeping-orphaned-objects) | Storage that matches the database | half a day |
 | | [Cutting a token off early](#cutting-a-token-off-early) | Signing out meaning something | 1 day |
 | | [Keyset pagination](#keyset-pagination) | Folders past a few thousand children | half a day |
@@ -86,15 +89,6 @@ instance's memory, which is the only reason it is not already done.
 
 ## Then, in the order a deal asks for them
 
-### Document versions
-
-Week two of every deal something is re-issued. Today `onConflict: 'replace'`
-writes new bytes over the same object key and keeps the row, which is right for
-keeping links alive and wrong for disclosure: "the management accounts as they
-stood in the room on 14 March" is unanswerable, and the disclosure letter is
-written against exactly that. A version table and a second object key. Wants the
-log above it to be useful, because a version history is a history.
-
 ### Notifications
 
 Four documents go in on day 12 and nobody is told; the other side finds them by
@@ -107,11 +101,6 @@ Normally a convenience, here a retention risk: the buyer's team wants a folder
 offline tonight, gets forty files one signed URL at a time, gives up, and asks
 for a zip over email. Now the deal is running outside the room and the audit
 trail is worth less. Streamed zip for a folder, and a job for anything large.
-
-### Search
-
-For three hundred documents in a numbered index, browsing is fine. Above a couple
-of thousand it is not. `pg_trgm` on `files.name`, one route, one field.
 
 ### Q and A between the sides
 

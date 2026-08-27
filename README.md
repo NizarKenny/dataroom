@@ -28,7 +28,12 @@ Three things worth opening:
    shared, and every row carries a rail on its left because its access came from
    the folder, not from the row.
 3. Drop two files into a folder where one of the names is already taken. The
-   queue asks per file: keep both, replace, skip.
+   queue asks per file: keep both, new version, skip. Take the new version, then
+   open History on the row: what was there is still there, and one click puts it
+   back.
+4. Type into the search field. It looks at file names across the whole room and
+   says which folder each one sits in. As the reader it finds only what they
+   were given.
 
 ![Rows that inherit their access](docs/screenshots/inherited.png)
 
@@ -167,6 +172,12 @@ reach a sibling branch. That leak is the reason the model exists.
 ![The share dialog](docs/screenshots/share.png)
 
 ## How it scales
+
+**Searching by name.** "Contains" is not a question a btree can answer, so
+`files_name_trgm_idx` is a GIN index over trigrams of `files.name`. The access
+filter rides along as an `OR` of path prefixes, which is the same shape and the
+same index as every other access check here, so a reader's search costs what
+their grants cost rather than what the room holds.
 
 **The size and item count of a folder, including its whole subtree.** Two
 aggregates over one range, no recursion and nothing maintained in the background.
@@ -310,6 +321,9 @@ someone was invited into, because those totals describe parts they cannot see.
 
 ## Not built, on purpose
 
+- **Diffing two versions.** The history says what a document has been and lets
+  you open any of them; it does not say what changed between two. For PDFs that
+  is a rendering problem rather than a data one, and counsel compares in Acrobat.
 - **Roles beyond viewer.** Everything shared here is read only. The column and
   the constraint are in place; what an editor would cost is in
   [How it scales](#how-it-scales).
@@ -357,7 +371,7 @@ Things a reviewer will notice:
 | --- | --- |
 | [The design system](https://nizarkenny.github.io/dataroom/design/style-reference.html) | Tokens in both themes, every component in every state, and the rule under each one. GitHub shows the source as source, so it is published as a page |
 | [The API](docs/api.md) | Every route, the three kinds of caller, the two step upload, and what each error code means |
-| [What comes next](docs/roadmap.md) | Thirteen things, sized, ordered by what a deal stalls without |
+| [What comes next](docs/roadmap.md) | Eleven things, sized, ordered by what a deal stalls without |
 | [The index](docs/README.md) | Where to start, depending on what you are here for |
 
 ## Where AI was used

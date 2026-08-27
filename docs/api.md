@@ -26,6 +26,7 @@ do not use it: `GET /rooms` asks which rooms exist for this person, and
 | `PATCH` | `/rooms/:id` | `{ name }`. Renames the room and its root folder together |
 | `DELETE` | `/rooms/:id` | Cascades the tree and sweeps the room's objects out of the bucket |
 | `GET` | `/rooms/:id/folders` | Every folder in the room, flat, for the move dialog. Owner only |
+| `GET` | `/rooms/:id/search?q=` | Files anywhere in the room whose name contains `q`, each with the folder it sits in. Cut down to what the caller may read, and the trail clipped at their grant |
 
 ## Folders
 
@@ -43,11 +44,14 @@ Uploads go in two steps, and the bytes never pass through this API.
 
 | | | |
 | --- | --- | --- |
-| `POST` | `/folders/:folderId/uploads` | `{ name, sizeBytes, onConflict }` where `onConflict` is `fail`, `rename` or `replace`. Settles the name and returns a signed URL to PUT the bytes at. Writes nothing to the database |
-| `POST` | `/folders/:folderId/files` | `{ fileId, name }`. Records the file once the bytes are there. Size comes from storage, not from you. A type the browser would run is refused and the object removed |
+| `POST` | `/folders/:folderId/uploads` | `{ name, sizeBytes, onConflict }` where `onConflict` is `fail`, `rename` or `version`. Settles the name and returns a signed URL to PUT the bytes at, plus the version those bytes will be. Writes nothing to the database |
+| `POST` | `/folders/:folderId/files` | `{ fileId, name, version }`. Records the file once the bytes are there. Size comes from storage, not from you. A type the browser would run is refused and the object removed. Recording the same version twice is not an error, so a retry is safe |
 | `GET` | `/files/:id/download-url` | `?disposition=inline\|attachment`. A URL that expires in five minutes |
 | `PATCH` | `/files/:id` | `{ name?, folderId? }`. Neither touches the object: its key is built from ids |
-| `DELETE` | `/files/:id` | Revokes any share of the file, then removes the row and the object |
+| `DELETE` | `/files/:id` | Revokes any share of the file, then removes the row and every version's object |
+| `GET` | `/files/:id/versions` | What this document has been, newest first. Owner only |
+| `GET` | `/files/:id/versions/:version/download-url` | One older version, named for it. Owner only |
+| `POST` | `/files/:id/versions/:version/restore` | Makes an older version current by adding a new one that points at its bytes. Owner only |
 
 ## Shares
 
@@ -66,6 +70,7 @@ Uploads go in two steps, and the bytes never pass through this API.
 | `GET` | `/links/:token` | What the link points at: a folder to open, or a single file |
 | `GET` | `/links/:token/folders/:id` | The same listing as above, refused for anything outside the shared subtree |
 | `GET` | `/links/:token/files/:id/download-url` | Same as the signed in version, for a file the link reaches |
+| `GET` | `/links/:token/search?q=` | The same search, inside what the link reaches |
 
 ## Errors
 
@@ -81,6 +86,7 @@ Uploads go in two steps, and the bytes never pass through this API.
 | `not_found` | 404 | The node does not exist, **or** it is not yours to see. Deliberately the same answer: a 403 would confirm that a folder with that id is real |
 | `bad_request` | 400 | A name with a separator, a file over the limit, a folder moved into itself |
 | `name_taken` | 409 | A sibling already has that name. The unique index is what decides, not a check beforehand |
+| `version_raced` | 409 | The file gained a version between signing the upload and recording it, which means two uploads of it overlapped |
 
 ---
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanName, nextFreeName, splitExtension } from './names.js'
+import { cleanName, nextFreeName, splitExtension, versionedName } from './names.js'
 
 describe('cleanName', () => {
   it('trims the edges', () => {
@@ -62,5 +62,19 @@ describe('nextFreeName', () => {
 
   it('numbers a name with no extension', () => {
     expect(nextFreeName('Financials', new Set(['Financials']))).toBe('Financials (2)')
+  })
+})
+
+describe('versionedName', () => {
+  it('marks the version before the extension', () => {
+    expect(versionedName('Management accounts.pdf', 3)).toBe('Management accounts (v3).pdf')
+  })
+
+  it('marks a name with no extension', () => {
+    expect(versionedName('Disclosure schedule', 2)).toBe('Disclosure schedule (v2)')
+  })
+
+  it('does not mistake a leading dot for an extension', () => {
+    expect(versionedName('.gitignore', 2)).toBe('.gitignore (v2)')
   })
 })

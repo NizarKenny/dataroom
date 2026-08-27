@@ -19,7 +19,9 @@ export function SearchField({ value, onChange, placeholder }: Props) {
         onChange={(event) => onChange(event.target.value)}
         // Escape is what people already press to get out of a search box.
         onKeyDown={(event) => event.key === 'Escape' && onChange('')}
-        className="pr-8 pl-8"
+        // Safari and Chrome draw their own clear button on a search input, and
+        // two of them side by side is one too many.
+        className="pr-8 pl-8 [&::-webkit-search-cancel-button]:appearance-none"
       />
       {value && (
         <button
