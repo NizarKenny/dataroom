@@ -84,14 +84,14 @@ erDiagram
         uuid id PK
         uuid parent_id FK
         text name
-        text path "/<root>/<child>/<self>/"
+        text path "ancestor ids, slash delimited and slash terminated"
         int depth
     }
     files {
         uuid id PK
         uuid folder_id FK
         text name
-        text storage_key "<room>/<file>"
+        text storage_key "room id then file id"
         int8 size_bytes
         text mime_type
     }
