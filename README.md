@@ -272,6 +272,11 @@ Two things a reviewer will notice:
   downgrades Prisma across a major version, so it stays.
 - Email confirmation is off in Supabase Auth, deliberately, so that the demo
   accounts and any account a reviewer creates work immediately.
+- The root `package.json` carries one optional dependency,
+  `@rolldown/binding-linux-x64-gnu`. The lockfile is written on Windows, and npm
+  records only the platform it resolved on, so vitest had no binding to load on
+  the Linux runner. Naming it explicitly puts both platforms in the lockfile and
+  keeps `npm ci` in CI.
 
 ## Where AI was used
 
