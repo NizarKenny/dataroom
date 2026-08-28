@@ -231,7 +231,7 @@ export function LinkView() {
             )}
 
             <Breadcrumbs
-              trail={view.data.breadcrumbs.length > 1 ? view.data.breadcrumbs : []}
+              trail={view.data.breadcrumbs}
               onNavigate={(id) => navigate(`/l/${token}/f/${id}`)}
               granted
             >

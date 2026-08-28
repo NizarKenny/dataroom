@@ -310,12 +310,12 @@ export function Browser() {
             />
           ) : (
             <>
-              {/* At the top of a room the trail would only repeat the heading,
-                  but the row stays: it is where the lock over the columns
-                  lives, and a control that comes and goes with the depth of a
-                  folder is a control nobody finds twice. */}
+              {/* The trail used to be hidden at the top of a room, where it
+                  only repeated the heading. It stays now: the row is where the
+                  lock over the columns lives, and a row holding one control and
+                  nothing else reads as something that failed to load. */}
               <Breadcrumbs
-                trail={breadcrumbs.length > 1 ? breadcrumbs : []}
+                trail={breadcrumbs}
                 onNavigate={(id) => navigate(`/f/${id}`)}
                 granted={!owner}
               >
