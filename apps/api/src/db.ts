@@ -21,12 +21,14 @@ export async function withUniqueName<T>(
   what: 'file' | 'folder',
   name: string,
   write: () => Promise<T>,
+  /** Asked only once the write has already lost, so the happy path pays nothing. */
+  suggest?: () => Promise<string>,
 ): Promise<T> {
   try {
     return await write()
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      throw nameTaken(what, name)
+      throw nameTaken(what, name, suggest ? await suggest() : undefined)
     }
     throw error
   }

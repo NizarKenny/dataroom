@@ -32,8 +32,13 @@ export const notFound = (what = 'item') =>
 export const readOnly = () =>
   new AppError(403, 'read_only', 'You can view this data room, but not change it')
 
-export const nameTaken = (what: 'file' | 'folder', name: string) =>
-  new AppError(409, 'name_taken', `A ${what} called "${name}" is already here`, { name })
+/**
+ * `free` is a name that is not taken, so the caller can offer it rather than
+ * making somebody invent one. The upload queue has always had that choice; this
+ * is how a rename gets it too.
+ */
+export const nameTaken = (what: 'file' | 'folder', name: string, free?: string) =>
+  new AppError(409, 'name_taken', `A ${what} called "${name}" is already here`, { name, free })
 
 /**
  * The file moved on between signing the upload and recording it, which means two

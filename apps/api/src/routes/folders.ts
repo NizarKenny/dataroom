@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { viewerOf } from '../auth.js'
 import { newId, prisma, withUniqueName } from '../db.js'
-import { cleanName } from '../domain/names.js'
+import { cleanName, nextFreeName } from '../domain/names.js'
 import { childPath } from '../domain/path.js'
 import { badRequest } from '../errors.js'
 import { openFolder, requireOwner, sharesInSubtree } from '../permissions.js'
@@ -16,6 +16,17 @@ const listing = z.object({
   sort: z.enum(['name', 'size', 'modified']).default('name'),
   dir: z.enum(['asc', 'desc']).default('asc'),
 })
+
+/**
+ * A name nothing in that parent is using, so a rejected rename can offer one
+ * instead of asking somebody to guess. Read after the write has already failed,
+ * so a stale answer costs a second rejection rather than a wrong name.
+ */
+async function freeFolderName(parentId: string | null, name: string): Promise<string> {
+  if (parentId === null) return name
+  const siblings = await prisma.folder.findMany({ where: { parentId }, select: { name: true } })
+  return nextFreeName(name, new Set(siblings.map((folder) => folder.name)))
+}
 
 export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
   app.get(
@@ -107,8 +118,11 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
 
       if (request.body.parentId === undefined) {
         // Paths are built from ids, so a rename touches one row and nothing else.
-        const renamed = await withUniqueName('folder', name ?? folder.name, () =>
-          prisma.folder.update({ where: { id: folder.id }, data: { name } }),
+        const renamed = await withUniqueName(
+          'folder',
+          name ?? folder.name,
+          () => prisma.folder.update({ where: { id: folder.id }, data: { name } }),
+          () => freeFolderName(folder.parentId, name ?? folder.name),
         )
         return { id: renamed.id, name: renamed.name, parentId: renamed.parentId }
       }
@@ -118,51 +132,55 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
       // Two moves running at once could each pass their own cycle check and then
       // hang the tree off itself. Moves are rare, so one advisory lock per room
       // for the length of the transaction is cheaper than reasoning about it.
-      const parent = await withUniqueName('folder', name ?? folder.name, () =>
-        prisma.$transaction(async (tx) => {
-          await tx.$executeRaw`select pg_advisory_xact_lock(hashtextextended(${room.id}, 0))`
+      const parent = await withUniqueName(
+        'folder',
+        name ?? folder.name,
+        () =>
+          prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`select pg_advisory_xact_lock(hashtextextended(${room.id}, 0))`
 
-          const [current, destination] = await Promise.all([
-            tx.folder.findUniqueOrThrow({ where: { id: folder.id } }),
-            tx.folder.findUnique({ where: { id: parentId } }),
-          ])
+            const [current, destination] = await Promise.all([
+              tx.folder.findUniqueOrThrow({ where: { id: folder.id } }),
+              tx.folder.findUnique({ where: { id: parentId } }),
+            ])
 
-          if (!destination || destination.dataRoomId !== room.id) {
-            throw badRequest('A folder can only move inside its own data room')
-          }
-          if (destination.path.startsWith(current.path)) {
-            throw badRequest('A folder cannot be moved into itself')
-          }
+            if (!destination || destination.dataRoomId !== room.id) {
+              throw badRequest('A folder can only move inside its own data room')
+            }
+            if (destination.path.startsWith(current.path)) {
+              throw badRequest('A folder cannot be moved into itself')
+            }
 
-          const from = current.path
-          const to = childPath(destination.path, current.id)
-          const depthChange = destination.depth + 1 - current.depth
+            const from = current.path
+            const to = childPath(destination.path, current.id)
+            const depthChange = destination.depth + 1 - current.depth
 
-          await tx.folder.update({
-            where: { id: current.id },
-            data: { name, parentId: destination.id },
-          })
+            await tx.folder.update({
+              where: { id: current.id },
+              data: { name, parentId: destination.id },
+            })
 
-          // The subtree moves by rewriting one prefix. Every descendant is already
-          // selected by that same prefix, so this is a single scan.
-          await tx.$executeRaw`
-            update folders
-               set path = ${to} || substring(path from length(${from}) + 1),
-                   depth = depth + ${depthChange}::int
-             where path like ${`${from}%`}
-          `
+            // The subtree moves by rewriting one prefix. Every descendant is already
+            // selected by that same prefix, so this is a single scan.
+            await tx.$executeRaw`
+              update folders
+                 set path = ${to} || substring(path from length(${from}) + 1),
+                     depth = depth + ${depthChange}::int
+               where path like ${`${from}%`}
+            `
 
-          // Shares point at paths too. Leaving them behind would quietly cut off
-          // everyone who had been given the folder before it moved.
-          await tx.$executeRaw`
-            update shares
-               set resource_path = ${to} || substring(resource_path from length(${from}) + 1)
-             where data_room_id = ${room.id}::uuid
-               and resource_path like ${`${from}%`}
-          `
+            // Shares point at paths too. Leaving them behind would quietly cut off
+            // everyone who had been given the folder before it moved.
+            await tx.$executeRaw`
+              update shares
+                 set resource_path = ${to} || substring(resource_path from length(${from}) + 1)
+               where data_room_id = ${room.id}::uuid
+                 and resource_path like ${`${from}%`}
+            `
 
-          return destination
-        }),
+            return destination
+          }),
+        () => freeFolderName(parentId, name ?? folder.name),
       )
 
       return { id: folder.id, name: name ?? folder.name, parentId: parent.id }

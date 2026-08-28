@@ -28,6 +28,16 @@ const inFolder = z.object({ folderId: z.uuid() })
 const tooLarge = () =>
   badRequest(`Files are limited to ${MAX_UPLOAD_MB} MB`, { limitBytes: MAX_UPLOAD_BYTES })
 
+/**
+ * A name nothing in that folder is using, so a rejected rename can offer one
+ * instead of asking somebody to guess. Read after the write has already failed,
+ * so a stale answer costs a second rejection rather than a wrong name.
+ */
+async function freeFileName(folderId: string, name: string): Promise<string> {
+  const siblings = await prisma.file.findMany({ where: { folderId }, select: { name: true } })
+  return nextFreeName(name, new Set(siblings.map((file) => file.name)))
+}
+
 export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
   /**
    * Step one of an upload: settle on a name and hand back a URL that points
@@ -345,11 +355,16 @@ export const fileRoutes: FastifyPluginAsyncZod = async (app) => {
 
       // The object key is built from ids alone, so neither a rename nor a move
       // touches storage.
-      const moved = await withUniqueName('file', name ?? file.name, () =>
-        prisma.file.update({
-          where: { id: file.id },
-          data: { name, folderId: request.body.folderId },
-        }),
+      const landing = request.body.folderId ?? file.folderId
+      const moved = await withUniqueName(
+        'file',
+        name ?? file.name,
+        () =>
+          prisma.file.update({
+            where: { id: file.id },
+            data: { name, folderId: request.body.folderId },
+          }),
+        () => freeFileName(landing, name ?? file.name),
       )
 
       return { id: moved.id, name: moved.name, folderId: moved.folderId }

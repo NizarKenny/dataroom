@@ -80,12 +80,47 @@ export const shareRoutes: FastifyPluginAsyncZod = async (app) => {
       }
 
       if (request.body.mode === 'public_link') {
-        const share = await grantInRoom(room.id, (tx) =>
-          tx.share.create({
-            data: { id: newId(), ...base, mode: 'public_link', token: newToken() },
-          }),
-        )
-        return reply.status(201).send({ id: share.id, mode: share.mode, token: share.token })
+        // One live link per thing. Two tabs both pressing "create a link" used
+        // to mint two tokens, and turning the link off would then revoke the one
+        // the dialog happened to be showing while the other kept working.
+        const live = await prisma.share.findFirst({
+          where: {
+            dataRoomId: room.id,
+            resourceType: base.resourceType,
+            resourceId: base.resourceId,
+            mode: 'public_link',
+            revokedAt: null,
+          },
+        })
+        if (live) {
+          return reply.status(200).send({ id: live.id, mode: live.mode, token: live.token })
+        }
+
+        try {
+          const share = await grantInRoom(room.id, (tx) =>
+            tx.share.create({
+              data: { id: newId(), ...base, mode: 'public_link', token: newToken() },
+            }),
+          )
+          return reply.status(201).send({ id: share.id, mode: share.mode, token: share.token })
+        } catch (error) {
+          // Two requests can both read "no link yet". The partial unique index
+          // is what actually decides, and the loser wants the winner's token,
+          // not an error: both callers asked for the same thing.
+          if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+            throw error
+          }
+          const won = await prisma.share.findFirstOrThrow({
+            where: {
+              dataRoomId: room.id,
+              resourceType: base.resourceType,
+              resourceId: base.resourceId,
+              mode: 'public_link',
+              revokedAt: null,
+            },
+          })
+          return reply.status(200).send({ id: won.id, mode: won.mode, token: won.token })
+        }
       }
 
       if (!request.body.email) throw badRequest('An invitation needs an email address')

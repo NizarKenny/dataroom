@@ -78,6 +78,27 @@ async function main() {
   const asReader = caller(app, reader.token)
   const anonymous = caller(app)
 
+  /** Sign, put, record: the three steps a browser takes, as one line. */
+  async function putFile(folderId: string, name: string, body: string, onConflict?: string) {
+    const bytes = Buffer.from(body, 'utf8')
+    const ticket = await asOwner('POST', `/folders/${folderId}/uploads`, {
+      name,
+      sizeBytes: bytes.byteLength,
+      ...(onConflict ? { onConflict } : {}),
+    })
+    await fetch(ticket.body.url as string, {
+      method: 'PUT',
+      body: bytes,
+      headers: { 'content-type': 'text/plain' },
+    })
+    const saved = await asOwner('POST', `/folders/${folderId}/files`, {
+      fileId: ticket.body.fileId,
+      name: ticket.body.name,
+      version: ticket.body.version,
+    })
+    return { id: saved.body?.id as string, name: saved.body?.name as string, status: saved.status }
+  }
+
   // The browser is the only client that sends a preflight, so a method missing
   // from the allow list breaks rename, move and every delete in production while
   // curl and every call in this file keep passing.
@@ -153,6 +174,32 @@ async function main() {
     onConflict: 'rename',
   })
   check('keep both numbers the copy', renamed.body?.name === 'cap-table (2).csv', renamed.body)
+
+  // A rename that collides is the same conflict the upload queue handles, so it
+  // gets the same courtesy: refused, and told which name is free. In its own
+  // folder, because the counts asserted further down are about q4.
+  const spare = await asOwner('POST', '/folders', { parentId: rootId, name: 'Zed' })
+  const note = await putFile(spare.body.id as string, 'note.txt', 'one')
+  const noteTwo = await putFile(spare.body.id as string, 'note.txt', 'two', 'rename')
+  check('a second copy lands beside the first', noteTwo.name === 'note (2).txt', noteTwo)
+
+  const ontoTaken = await asOwner('PATCH', `/files/${noteTwo.id}`, { name: 'note.txt' })
+  check('a rename onto a taken name is refused', ontoTaken.status === 409, ontoTaken.body)
+  check(
+    'and comes back with a name that is free',
+    ontoTaken.body?.detail?.free === 'note (3).txt',
+    ontoTaken.body,
+  )
+  check('the file keeps the name it had', note.name === 'note.txt', note)
+
+  const twin = await asOwner('POST', '/folders', { parentId: rootId, name: 'Zed two' })
+  const ontoFolder = await asOwner('PATCH', `/folders/${twin.body.id}`, { name: 'Zed' })
+  check('a folder rename onto a sibling is refused too', ontoFolder.status === 409, ontoFolder.body)
+  check(
+    'and it suggests a free folder name',
+    ontoFolder.body?.detail?.free === 'Zed (2)',
+    ontoFolder.body,
+  )
 
   console.log('\nversions')
   const revised = Buffer.from('period,revenue\nQ4,1310000\n', 'utf8')
@@ -357,6 +404,19 @@ async function main() {
     mode: 'public_link',
   })
   const token = link.body.token as string
+
+  // Asking twice is what two tabs do. A second token would be one the dialog
+  // never shows and revoking never reaches.
+  const linkAgain = await asOwner('POST', '/shares', {
+    resourceType: 'folder',
+    resourceId: q4.body.id,
+    mode: 'public_link',
+  })
+  check('asking for a link twice returns the same one', linkAgain.body?.token === token, linkAgain.body)
+  const liveLinks = await prisma.share.count({
+    where: { resourceId: q4.body.id as string, mode: 'public_link', revokedAt: null },
+  })
+  check('and only one link is live', liveLinks === 1, liveLinks)
   const opened = await anonymous('GET', `/links/${token}`)
   check('a link opens without an account', opened.status === 200 && opened.body.folderId === q4.body.id, opened.body)
 
@@ -420,6 +480,11 @@ async function main() {
   await asOwner('DELETE', `/folders/${legal.body.id}`)
   const deadLink = await anonymous('GET', `/links/${token}`)
   check('a link into a deleted folder says it was switched off', deadLink.status === 403, deadLink.body)
+
+  // The two folders the conflict checks used sit outside that subtree, so they
+  // go now: what follows is about the room having nothing left in it.
+  await asOwner('DELETE', `/folders/${spare.body.id}`)
+  await asOwner('DELETE', `/folders/${twin.body.id}`)
 
   const leftBehind = await prisma.file.count({ where: { dataRoomId: roomId } })
   check('the files went with it', leftBehind === 0, leftBehind)
