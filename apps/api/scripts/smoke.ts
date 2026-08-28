@@ -326,6 +326,20 @@ async function main() {
   const readerMisses = await asReader('GET', `/rooms/${roomId}/search?q=nda`)
   check('and finds nothing outside it', readerMisses.body?.files?.length === 0, readerMisses.body)
 
+  // Somebody looking for the legal folder types "legal", and silence reads as
+  // broken rather than as a scope.
+  const foundFolder = await asOwner('GET', `/rooms/${roomId}/search?q=financ`)
+  check('the owner finds a folder by name', foundFolder.body?.folders?.length === 1, foundFolder.body?.folders)
+  check('and a folder result stops short of itself', foundFolder.body?.folders?.[0]?.trail?.length === 1, foundFolder.body?.folders?.[0])
+
+  const rootHidden = await asOwner('GET', `/rooms/${roomId}/search?q=Project Atlas`)
+  check('the room root is not a search result', rootHidden.body?.folders?.length === 0, rootHidden.body?.folders)
+
+  const readerFolders = await asReader('GET', `/rooms/${roomId}/search?q=q4`)
+  check('a reader finds a folder inside their grant', readerFolders.body?.folders?.length === 1, readerFolders.body?.folders)
+  const readerBlocked = await asReader('GET', `/rooms/${roomId}/search?q=legal`)
+  check('and none outside it', readerBlocked.body?.folders?.length === 0, readerBlocked.body?.folders)
+
   const readerWrites = await asReader('POST', '/folders', {
     parentId: q4.body.id,
     name: 'Sneaky',

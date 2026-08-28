@@ -133,10 +133,7 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
 
         <tbody>
           {rows.map((row) => (
-            <tr
-              key={row.id}
-              className="group border-b border-hairline last:border-b-0 hover:bg-sunken"
-            >
+            <tr key={row.id} className="group row-rule last:bg-none hover:bg-sunken">
               <td
                 className={cn(
                   'px-4 py-[13px]',

@@ -166,34 +166,62 @@ export function fileRow(file: File, folder: Folder, shares: LiveShare[] | null) 
 const RESULTS = 50
 
 /**
- * Files anywhere in one room whose name contains what was typed, cut down to the
- * part of the room this viewer may read, and each one told where it sits. The
- * trail is the point: a name alone does not tell the third copy of "Disclosure
- * schedule" from the first two.
+ * Anything anywhere in one room whose name contains what was typed, cut down to
+ * the part of the room this viewer may read, and each one told where it sits.
+ *
+ * Folders count. Somebody looking for the legal folder types "legal", and a
+ * search that only knows about files answers that with silence, which reads as
+ * broken rather than as a scope. They come first for the same reason they come
+ * first in a listing: a folder is a place to go rather than a thing to open.
+ *
+ * The trail is the other half: a name alone does not tell the third copy of
+ * "Disclosure schedule" from the first two.
  */
 export async function searchView(viewer: Viewer, room: DataRoom, query: string) {
   const scope = await readableIn(viewer, room)
+  const contains = { contains: escapeForLike(query), mode: 'insensitive' as const }
 
-  const files = await prisma.file.findMany({
-    where: {
-      dataRoomId: room.id,
-      name: { contains: escapeForLike(query), mode: 'insensitive' },
-      ...(scope ? { OR: reachable(scope) } : {}),
-    },
-    include: { folder: true },
-    orderBy: { name: 'asc' },
-    take: RESULTS,
-  })
+  const [folders, files] = await Promise.all([
+    prisma.folder.findMany({
+      where: {
+        dataRoomId: room.id,
+        name: contains,
+        // The root is named after the room, so finding it says nothing.
+        parentId: { not: null },
+        ...(scope ? { OR: scope.paths.map((path) => ({ path: { startsWith: path } })) } : {}),
+      },
+      orderBy: { name: 'asc' },
+      take: RESULTS,
+    }),
+    prisma.file.findMany({
+      where: {
+        dataRoomId: room.id,
+        name: contains,
+        ...(scope ? { OR: reachable(scope) } : {}),
+      },
+      include: { folder: true },
+      orderBy: { name: 'asc' },
+      take: RESULTS,
+    }),
+  ])
 
   const shares = scope === null ? await liveSharesIn(room.id) : null
-  const trails = await trailsFor(files.map((file) => file.folder), scope)
+
+  // One pass over every folder either kind of result needs a trail from.
+  const trails = await trailsFor([...folders, ...files.map((file) => file.folder)], scope)
 
   return {
     query,
     // Said out loud, because a list that stops at fifty looks exactly like a
     // list that found fifty.
-    truncated: files.length === RESULTS,
-    files: files.map((file) => ({
+    truncated: folders.length === RESULTS || files.length === RESULTS,
+    folders: folders.map((folder) => ({
+      ...folderRow(folder, shares),
+      // A folder's own trail ends with itself, and a result that says it sits
+      // inside itself is not telling anybody anything.
+      trail: (trails.get(folder.id) ?? []).slice(0, -1),
+    })),
+    files: files.slice(0, Math.max(0, RESULTS - folders.length)).map((file) => ({
       ...fileRow(file, file.folder, shares),
       folderId: file.folderId,
       trail: trails.get(file.folderId) ?? [],

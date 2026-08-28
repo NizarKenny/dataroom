@@ -150,8 +150,8 @@ export const d = {
     nothing: (query: string) =>
       p(`Nothing matches “${query}”`, `Нічого не знайшлося за «${query}»`),
     nothingLede: p(
-      'This looks at file names across everything you can see in this data room.',
-      'Пошук іде за назвами файлів по всьому, що вам видно в цій кімнаті.',
+      'This looks at the names of files and folders, across everything you can see in this data room.',
+      'Пошук іде за назвами файлів і папок по всьому, що вам видно в цій кімнаті.',
     ),
     goToFolder: p('Go to folder', 'До папки'),
     truncated: (n: number) =>

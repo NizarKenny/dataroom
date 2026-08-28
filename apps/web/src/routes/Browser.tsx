@@ -302,10 +302,13 @@ export function Browser() {
               query={term}
               results={results.data}
               pending={results.isPending || term !== query.trim()}
-              onOpen={(hit) => setPreviewing({ kind: 'file', ...hit })}
-              onGoToFolder={(hit) => {
+              onOpenFile={(id) => {
+                const hit = results.data?.files.find((file) => file.id === id)
+                if (hit) setPreviewing({ kind: 'file', ...hit })
+              }}
+              onOpenFolder={(id) => {
                 setQuery('')
-                navigate(`/f/${hit.folderId}`)
+                navigate(`/f/${id}`)
               }}
             />
           ) : (

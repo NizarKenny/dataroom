@@ -26,7 +26,7 @@ do not use it: `GET /rooms` asks which rooms exist for this person, and
 | `PATCH` | `/rooms/:id` | `{ name }`. Renames the room and its root folder together |
 | `DELETE` | `/rooms/:id` | Cascades the tree and sweeps the room's objects out of the bucket |
 | `GET` | `/rooms/:id/folders` | Every folder in the room, flat, for the move dialog. Owner only |
-| `GET` | `/rooms/:id/search?q=` | Files anywhere in the room whose name contains `q`, each with the folder it sits in. Cut down to what the caller may read, and the trail clipped at their grant |
+| `GET` | `/rooms/:id/search?q=` | Folders and files anywhere in the room whose name contains `q`, each with the folder it sits in. Folders first, and the room's root left out, since it is named after the room. Cut down to what the caller may read, and the trail clipped at their grant |
 
 ## Folders
 

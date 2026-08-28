@@ -171,16 +171,17 @@ export interface FileVersion {
   current: boolean
 }
 
-export interface SearchHit extends FileRow {
-  folderId: string
-  /** Where it sits, clipped at whatever the reader was given. */
-  trail: { id: string; name: string }[]
-}
+/** Where it sits, clipped at whatever the reader was given. */
+type Where = { trail: { id: string; name: string }[] }
+
+export type FolderHit = FolderRow & Where
+export type FileHit = FileRow & Where & { folderId: string }
 
 export interface SearchResults {
   query: string
   truncated: boolean
-  files: SearchHit[]
+  folders: FolderHit[]
+  files: FileHit[]
 }
 
 export const api = {

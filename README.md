@@ -33,9 +33,9 @@ Four things worth opening:
    one click puts the older one back. Uploading a file whose name is already
    taken is what produces that, and the queue asks per file: keep both, new
    version, skip.
-4. Type into the search field. It looks at file names across the whole room and
-   says which folder each one sits in. As the reader it finds only what they
-   were given.
+4. Type into the search field. It looks at the names of files and folders across
+   the whole room and says where each one sits. As the reader it finds only what
+   they were given.
 5. Open `05 Data pack`, which holds more rows than one page. The pager shows
    three numbers and two arrows, and the arrows scroll the numbers rather than
    turning the page. Click a column heading to sort by it: the first click asks
@@ -266,7 +266,9 @@ because a read already resolves the same grant and only ever asked whether one
 exists.
 
 **Searching by name.** "Contains" is not a question a btree can answer, so
-`files_name_trgm_idx` is a GIN index over trigrams of `files.name`. The access
+`files_name_trgm_idx` is a GIN index over trigrams of `files.name`. Folders are
+searched too, and are the cheaper half: a room holds tens of thousands of files
+and hundreds of folders, so that side is a scan of something small. The access
 filter rides along as an `OR` of path prefixes, which is the same shape and the
 same index as every other access check here, so a reader's search costs what
 their grants cost rather than what the room holds.

@@ -191,6 +191,24 @@
   }
 }
 
+/* A rule carries meaning by how far it runs. Full width, it is a boundary
+   between parts of the panel: the trail, the banner, the head, the pager. Held
+   back to the cell padding, it is a separator between items of one list, and it
+   leaves the rail down the left of an inherited row running unbroken instead of
+   cut once per row. Drawn as a background rather than a border so a hover, which
+   is a background colour, can sit under it. */
+@utility row-rule {
+  background-image: linear-gradient(
+    to right,
+    transparent 0 var(--spacing-4),
+    var(--hairline) var(--spacing-4) calc(100% - var(--spacing-4)),
+    transparent calc(100% - var(--spacing-4)) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: bottom;
+}
+
 @utility wobbling {
   animation: wobble 0.34s ease-in-out infinite;
   /* The dashed edge is the part that survives a still frame, a screenshot and
