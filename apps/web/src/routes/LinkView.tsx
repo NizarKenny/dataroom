@@ -183,7 +183,7 @@ export function LinkView() {
   return (
     <Shell room={link.room.name}>
       {view.data && (
-        <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3">
           {/* Only inside the shared folder. At its top there is nowhere a link
               holder is allowed to go, so there is no button offering it. */}
           {parent && (
@@ -210,39 +210,43 @@ export function LinkView() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-hairline bg-surface">
         {searching && (
-          <SearchResults
-            query={term}
-            results={results.data}
-            pending={results.isPending || term !== query.trim()}
-            onOpenFile={(id) => {
-              const hit = results.data?.files.find((file) => file.id === id)
-              if (hit) setPreviewing({ kind: 'file', ...hit })
-            }}
-            onOpenFolder={(id) => {
-              setQuery('')
-              navigate(`/l/${token}/f/${id}`)
-            }}
-          />
+          <div className="min-h-0 flex-1 overflow-auto">
+            <SearchResults
+              query={term}
+              results={results.data}
+              pending={results.isPending || term !== query.trim()}
+              onOpenFile={(id) => {
+                const hit = results.data?.files.find((file) => file.id === id)
+                if (hit) setPreviewing({ kind: 'file', ...hit })
+              }}
+              onOpenFolder={(id) => {
+                setQuery('')
+                navigate(`/l/${token}/f/${id}`)
+              }}
+            />
+          </div>
         )}
 
         {!searching && view.data && (
           <>
-            {view.data.breadcrumbs[0] && (
-              <ReaderBanner grantedAt={view.data.breadcrumbs[0].name} through="link" />
-            )}
+            <div className="shrink-0">
+              {view.data.breadcrumbs[0] && (
+                <ReaderBanner grantedAt={view.data.breadcrumbs[0].name} through="link" />
+              )}
 
-            <Breadcrumbs
-              trail={view.data.breadcrumbs}
-              onNavigate={(id) => navigate(`/l/${token}/f/${id}`)}
-              granted
-            >
-              <LockButton />
-            </Breadcrumbs>
+              <Breadcrumbs
+                trail={view.data.breadcrumbs}
+                onNavigate={(id) => navigate(`/l/${token}/f/${id}`)}
+                granted
+              >
+                <LockButton />
+              </Breadcrumbs>
+            </div>
 
             {view.data.folders.length + view.data.files.length === 0 ? (
-              <div className="px-6 py-13 text-center">
+              <div className="min-h-0 flex-1 overflow-auto px-6 py-13 text-center">
                 <h2 className="text-xl font-semibold">{t(d.browser.emptyReader)}</h2>
                 <p className="mx-auto mt-2 max-w-[42ch] text-ink-muted">
                   {t(d.browser.emptyReaderLede)}
@@ -262,11 +266,13 @@ export function LinkView() {
               />
             )}
 
-            <Pager
-              page={view.data.page.number}
-              pages={view.data.page.pages}
-              onGoTo={(next) => setQueryParam('page', String(next), '1')}
-            />
+            <div className="shrink-0">
+              <Pager
+                page={view.data.page.number}
+                pages={view.data.page.pages}
+                onGoTo={(next) => setQueryParam('page', String(next), '1')}
+              />
+            </div>
           </>
         )}
 
@@ -300,8 +306,8 @@ function Shell({
   const { theme, toggle } = useTheme()
 
   return (
-    <div className="min-h-dvh bg-canvas">
-      <header className="border-b border-hairline">
+    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
+      <header className="shrink-0 border-b border-hairline">
         <div className="mx-auto flex h-14 max-w-[1180px] items-center gap-3 px-4 sm:px-6">
           <span className="shrink-0 font-semibold tracking-[-0.02em] whitespace-nowrap">
             Data Room
@@ -311,7 +317,7 @@ function Shell({
           {shared && (
             <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full bg-primary-wash px-2.5 py-[3px] text-xs font-semibold whitespace-nowrap text-primary-active">
               <Link2 className="size-3.5" />
-              Shared with you
+              {t(d.rooms.sharedWithYou)}
             </span>
           )}
 
@@ -329,7 +335,9 @@ function Shell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto flex w-full max-w-[1180px] min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
+        {children}
+      </main>
     </div>
   )
 }

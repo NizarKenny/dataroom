@@ -43,7 +43,8 @@ Five things worth opening:
    column heading to sort by it: the first click asks
    what that column is usually asked, the second turns it round, the third puts
    the list back. Then open the lock at the end of the breadcrumb row: the
-   headings come loose and can be dragged into another order, and stop sorting
+   headings come loose and can be dragged into another order by mouse or by
+   finger, and stop sorting
    while they are loose. The arrangement is remembered; the sort rides in the
    URL, so a sorted folder can be sent to somebody as it looks.
 
@@ -370,9 +371,12 @@ the room makes for them.
 **One breakpoint carries the responsive work.** Tailwind's own scale, unchanged,
 and `sm` at 640px does nearly all of it: below it the toolbar breaks in two so the
 folder name keeps a line to be read on, the buttons that act on a room drop their
-labels, and the padding steps down once. A table too wide for the screen scrolls
-inside its own box rather than taking the page with it, with a floor of 540px
-because below that the columns crush instead of reflowing. The one other use of
+labels, and the padding steps down once. A folder is one screen tall and only the
+rows move inside it: the toolbar, the trail, the column headings and the pager
+hold their place, so the control that turns the page is never at the bottom of
+the page it turns. A table too wide for the screen slides inside the same box
+rather than taking the page with it, with a floor of 540px because below that the
+columns crush instead of reflowing. The one other use of
 `md` drops the size column from search results, where the name needs the room.
 Checked at 390, 768, 1024 and 1440: nothing overflows the page at any of them.
 The rules are written down in the design system.

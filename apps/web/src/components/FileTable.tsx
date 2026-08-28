@@ -29,7 +29,7 @@ import {
   Share2,
   Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 export type Row = ({ kind: 'folder' } & FolderRow) | ({ kind: 'file' } & FileRow)
 
@@ -56,6 +56,7 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
   const columns = useColumns()
   const [dragging, setDragging] = useState<ColumnId | null>(null)
   const [over, setOver] = useState<ColumnId | null>(null)
+  const held = useRef<ColumnId | null>(null)
 
   // Present for an owner even when empty: a column that comes and goes between
   // sibling folders moves every column after it under the reader's cursor.
@@ -63,16 +64,60 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
   const showAccess = rows.some((row) => row.access !== null)
   const shown = columns.visible.filter((id) => id !== 'access' || showAccess)
 
-  function drop(onto: ColumnId) {
-    if (dragging) columns.moveTo(dragging, onto)
+  // Pointer events rather than HTML5 drag and drop, which a touch screen does
+  // not fire at all: on a phone the headings came loose, wobbled, and then would
+  // not move. One set of handlers now covers a mouse and a finger both.
+  function columnUnder(x: number, y: number): ColumnId | null {
+    const cell = document.elementFromPoint(x, y)?.closest('[data-column]')
+    return (cell?.getAttribute('data-column') as ColumnId | null) ?? null
+  }
+
+  function grab(event: React.PointerEvent<HTMLTableCellElement>, id: ColumnId) {
+    if (!columns.unlocked) return
+    // What is being dragged lives in a ref, not in state. A flick can put the
+    // press and the move in one frame, and state read back inside that frame is
+    // still the state from before the press: the gesture would be dropped.
+    held.current = id
+
+    // Capture keeps the drag alive when the pointer wanders off the header row.
+    // It throws for a pointer the browser no longer calls active, which is not
+    // worth losing the drag over: the handlers on the other headings carry the
+    // gesture instead.
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      /* the drag still works, it just cannot follow the pointer off the row */
+    }
+
+    setDragging(id)
+    setOver(id)
+  }
+
+  // Capture sends every move to the heading that was grabbed, so where the
+  // pointer actually is has to be asked of the document.
+  function drag(event: React.PointerEvent) {
+    if (!held.current) return
+    setOver(columnUnder(event.clientX, event.clientY))
+  }
+
+  function drop(event: React.PointerEvent) {
+    const from = held.current
+    held.current = null
+    // Read the destination off the pointer rather than off `over`, for the same
+    // reason the source is a ref.
+    const onto = columnUnder(event.clientX, event.clientY)
+    if (from && onto && onto !== from) columns.moveTo(from, onto)
     setDragging(null)
     setOver(null)
   }
 
   return (
-    // The columns have a floor below which they crush rather than reflow, so on a
-    // narrow screen the table scrolls sideways and the page does not.
-    <div className="overflow-x-auto">
+    // The one part of the page that scrolls. Everything around it, the toolbar
+    // above and the pager below, stays where the reader left it, so getting to
+    // page four never means scrolling back up to find the control that does it.
+    // Sideways too: the columns have a floor below which they crush rather than
+    // reflow, so on a narrow screen the table slides and the page does not.
+    <div className="min-h-0 flex-1 overflow-auto">
       <table className="w-full min-w-[540px] border-collapse">
         <thead>
           <tr>
@@ -87,19 +132,11 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
             {shown.map((id) => (
               <Th
                 key={id}
-                draggable={columns.unlocked}
-                onDragStart={() => setDragging(id)}
-                onDragEnd={() => {
-                  setDragging(null)
-                  setOver(null)
-                }}
-                onDragOver={(event) => {
-                  if (!columns.unlocked) return
-                  event.preventDefault()
-                  setOver(id)
-                }}
-                onDragLeave={() => setOver((current) => (current === id ? null : current))}
-                onDrop={() => drop(id)}
+                data-column={id}
+                onPointerDown={(event) => grab(event, id)}
+                onPointerMove={drag}
+                onPointerUp={drop}
+                onPointerCancel={drop}
                 aria-sort={sortState(id === 'access' ? null : id, sort, columns.unlocked)}
                 // Label and values share one axis down the middle of the
                 // column. Ranged left or right they hang off an edge instead,
@@ -107,7 +144,10 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
                 // by the difference between them on every row.
                 className={cn(
                   'min-w-[104px] text-center select-none',
-                  columns.unlocked && 'cursor-grab',
+                  // A finger dragging a heading would otherwise scroll the list
+                  // under it, so while the columns are loose the browser is told
+                  // this gesture is taken.
+                  columns.unlocked && 'cursor-grab touch-none',
                   dragging === id && 'opacity-45',
                   over === id && dragging !== id && 'bg-primary-wash text-primary-active',
                 )}
@@ -249,11 +289,17 @@ function Label({
   )
 }
 
+/**
+ * The header stays put while the rows move under it, so it has to paint its own
+ * background or the rows would show through, and its own rule: a collapsed
+ * border on a stuck cell is the one thing browsers disagree about.
+ */
 function Th({ className, children, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
       className={cn(
-        'border-b border-hairline px-4 py-2.5 text-left text-xs font-semibold tracking-[0.125px] whitespace-nowrap text-ink-faint uppercase',
+        'sticky top-0 z-10 bg-surface px-4 py-2.5 text-left text-xs font-semibold tracking-[0.125px] whitespace-nowrap text-ink-faint uppercase',
+        'shadow-[0_1px_0_var(--hairline)]',
         className,
       )}
       {...props}

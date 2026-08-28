@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError, type Modified } from '@/lib/api'
 import { DEFAULT_SORT, isDefaultSort, nextSort, type Sort, type SortBy } from '@/lib/sort'
 import { useDebounced } from '@/lib/useDebounced'
+import { cn } from '@/lib/utils'
 import { d } from '@/lib/dictionary'
 import { useT } from '@/lib/i18n'
 import { useUploads } from '@/uploads/queue'
@@ -226,13 +227,12 @@ export function Browser() {
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={
-          dragging
-            ? 'rounded-lg outline-2 outline-offset-4 outline-primary'
-            : 'rounded-lg outline-2 outline-offset-4 outline-transparent'
-        }
+        className={cn(
+          'flex min-h-0 flex-1 flex-col rounded-lg outline-2 outline-offset-4',
+          dragging ? 'outline-primary' : 'outline-transparent',
+        )}
       >
-        <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3">
           <UpButton
             to={parent?.name ?? t(d.browser.theDataRooms)}
             onClick={() => navigate(parent ? `/f/${parent.id}` : '/')}
@@ -295,62 +295,67 @@ export function Browser() {
           )}
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-hairline bg-surface">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-hairline bg-surface">
           {/* Results are room wide, so the trail and the banners for the folder
               behind them would be describing something the reader is not looking
               at. They come back the moment the field is cleared. */}
           {searching ? (
-            <SearchResults
-              query={term}
-              results={results.data}
-              pending={results.isPending || term !== query.trim()}
-              onOpenFile={(id) => {
-                const hit = results.data?.files.find((file) => file.id === id)
-                if (hit) setPreviewing({ kind: 'file', ...hit })
-              }}
-              onOpenFolder={(id) => {
-                setQuery('')
-                navigate(`/f/${id}`)
-              }}
-            />
+            <div className="min-h-0 flex-1 overflow-auto">
+              <SearchResults
+                query={term}
+                results={results.data}
+                pending={results.isPending || term !== query.trim()}
+                onOpenFile={(id) => {
+                  const hit = results.data?.files.find((file) => file.id === id)
+                  if (hit) setPreviewing({ kind: 'file', ...hit })
+                }}
+                onOpenFolder={(id) => {
+                  setQuery('')
+                  navigate(`/f/${id}`)
+                }}
+              />
+            </div>
           ) : (
             <>
               {/* The trail used to be hidden at the top of a room, where it
                   only repeated the heading. It stays now: the row is where the
                   lock over the columns lives, and a row holding one control and
                   nothing else reads as something that failed to load. */}
-              <Breadcrumbs
-                trail={breadcrumbs}
-                onNavigate={(id) => navigate(`/f/${id}`)}
-                granted={!owner}
-              >
-                <LockButton />
-              </Breadcrumbs>
+              <div className="shrink-0">
+                <Breadcrumbs
+                  trail={breadcrumbs}
+                  onNavigate={(id) => navigate(`/f/${id}`)}
+                  granted={!owner}
+                >
+                  <LockButton />
+                </Breadcrumbs>
 
-              {!owner && breadcrumbs[0] && (
-                <ReaderBanner grantedAt={breadcrumbs[0].name} through="invitation" />
-              )}
+                {!owner && breadcrumbs[0] && (
+                  <ReaderBanner grantedAt={breadcrumbs[0].name} through="invitation" />
+                )}
 
-              {folder.access && (
-                <AccessBanner
-                  access={folder.access}
-                  grantedAtName={
-                    breadcrumbs.find((crumb) => crumb.id === folder.access?.grantedAt)?.name ?? null
-                  }
-                  onManage={() =>
-                    setSharing(
-                      atRoot
-                        ? { type: 'data_room', id: room.id, name: room.name }
-                        : { type: 'folder', id: folder.id, name: folder.name },
-                    )
-                  }
-                />
-              )}
+                {folder.access && (
+                  <AccessBanner
+                    access={folder.access}
+                    grantedAtName={
+                      breadcrumbs.find((crumb) => crumb.id === folder.access?.grantedAt)?.name ??
+                      null
+                    }
+                    onManage={() =>
+                      setSharing(
+                        atRoot
+                          ? { type: 'data_room', id: room.id, name: room.name }
+                          : { type: 'folder', id: folder.id, name: folder.name },
+                      )
+                    }
+                  />
+                )}
+              </div>
 
               {rows.length === 0 && filtered ? (
                 // An empty folder and a folder hidden by a filter look identical,
                 // and only one of them is the reader's own doing.
-                <div className="px-6 py-13 text-center">
+                <div className="min-h-0 flex-1 overflow-auto px-6 py-13 text-center">
                   <h2 className="text-xl font-semibold">{t(d.browser.filteredEmpty)}</h2>
                   <p className="mx-auto mt-2 mb-4 max-w-[42ch] text-ink-muted">
                     This folder has {view.data.page.total === 0 ? 'things' : 'more'} in it, outside
@@ -364,7 +369,7 @@ export function Browser() {
                   </Button>
                 </div>
               ) : rows.length === 0 ? (
-                <div className="px-6 py-13 text-center">
+                <div className="min-h-0 flex-1 overflow-auto px-6 py-13 text-center">
                   <h2 className="text-xl font-semibold">
                     {t(owner ? d.browser.emptyOwner : d.browser.emptyReader)}
                   </h2>
@@ -403,11 +408,13 @@ export function Browser() {
                 />
               )}
 
-              <Pager
-                page={view.data.page.number}
-                pages={view.data.page.pages}
-                onGoTo={(next) => setQueryParam('page', String(next), '1')}
-              />
+              <div className="shrink-0">
+                <Pager
+                  page={view.data.page.number}
+                  pages={view.data.page.pages}
+                  onGoTo={(next) => setQueryParam('page', String(next), '1')}
+                />
+              </div>
             </>
           )}
         </div>
@@ -490,11 +497,19 @@ export function Browser() {
   )
 }
 
+/**
+ * One screen, and only the rows move inside it. The bar, the toolbar, the trail
+ * and the pager are all where they were a moment ago, which is what makes a
+ * pager usable: the control that turns the page is not at the bottom of the page
+ * it turns.
+ */
 function Shell({ name, children }: { name?: string; children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="flex h-dvh flex-col overflow-hidden bg-canvas">
       <TopBar>{name && <span className="truncate text-[13px] text-ink-muted">{name}</span>}</TopBar>
-      <main className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto flex w-full max-w-[1180px] min-h-0 flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
+        {children}
+      </main>
     </div>
   )
 }

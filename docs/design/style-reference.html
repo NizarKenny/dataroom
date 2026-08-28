@@ -721,7 +721,9 @@ tr.inherited td:first-child::before {
     <p class="eyebrow">Arranging the columns</p>
     <p class="note">A heading cannot be both a handle and a button: grab it to drag and it sorts the
       table underneath you. The lock at the end of the trail picks which one it is, and it starts
-      closed, because sorting is what people do every day and rearranging is what they do once.</p>
+      closed, because sorting is what people do every day and rearranging is what they do once.
+      The drag is pointer events, not the browser's own drag and drop, which fires nothing at all
+      under a finger: on a phone the headings came loose, wobbled, and then would not move.</p>
 
     <div class="panel">
       <div class="crumbs">
@@ -832,10 +834,15 @@ tr.inherited td:first-child::before {
 
     <p class="note" style="margin-top:var(--s-md)">What changes, and the rule under each:</p>
     <ul class="note" style="margin:var(--s-xs) 0 0;padding-left:1.1em;line-height:1.7">
-      <li><b>The page never scrolls sideways.</b> A table too wide for the screen scrolls
-        inside its own box, so the header and the pager stay where they were put. The table
-        has a floor of 540px: below that the columns would crush rather than reflow, and a
-        crushed column is a column nobody can read.</li>
+      <li><b>The page does not scroll at all; the rows do.</b> A folder is one screen tall,
+        and the only thing that moves inside it is the list. The toolbar, the trail, the
+        column headings and the pager hold their place at every size, so the control that
+        turns the page is never at the bottom of the page it turns. The headings stay by
+        sticking to the top of the list they label.</li>
+      <li><b>Sideways is the same box.</b> A table too wide for the screen slides inside it
+        rather than taking the page along. The table has a floor of 540px: below that the
+        columns would crush rather than reflow, and a crushed column is a column nobody can
+        read.</li>
       <li><b>Below sm the toolbar breaks in two.</b> The folder name keeps its own line,
         and the search field with the date filter take the next one. They share it because
         one narrows the list and the other searches beyond it, and a phone has room for one
