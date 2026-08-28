@@ -181,6 +181,9 @@ section { margin-bottom: 52px; }
 table { width: 100%; border-collapse: collapse; }
 thead th {
   text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .125px;
+  /* Name ranges left because it is the row. Everything after it is centred,
+     header and values on one axis, so a column of "just now" over "22 minutes
+     ago" does not drift by the difference between them on every row. */
   text-transform: uppercase; color: var(--ink-faint);
   padding: 10px var(--s-md); border-bottom: 1px solid var(--hairline); background: var(--surface);
 }
@@ -190,7 +193,9 @@ tbody tr.is-hover td { background: var(--surface-sunken); }
 .cell-name { display: flex; align-items: center; gap: 10px; }
 .ico { width: 16px; height: 16px; flex: none; color: var(--ink-faint); }
 .ico.folder { color: var(--secondary); }
-td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-muted); white-space: nowrap; }
+thead th.mid, td.num, td.access { text-align: center; }
+thead th.mid { min-width: 104px; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-muted); white-space: nowrap; }
 td.access { width: 1%; white-space: nowrap; }
 td.actions { width: 1%; padding-left: 0; }
 .row-menu { border: 0; background: none; color: var(--ink-faint); border-radius: var(--r-sm); padding: 2px 6px; cursor: pointer; opacity: 0; font-size: 16px; line-height: 1; }
@@ -265,6 +270,57 @@ tr.inherited td:first-child::before {
 .elev.raised { box-shadow: var(--shadow-soft); }
 
 .theme-dark { background: var(--canvas); border-radius: var(--r-xl); padding: var(--s-xl); margin-top: var(--s-lg); }
+
+/* ── finding a document ─────────────────────────────────── */
+.search { position: relative; width: 256px; }
+.search .ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); }
+.search .input { padding-left: 30px; padding-right: 30px; }
+.search .clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--ink-faint); cursor: pointer; font-size: 14px; line-height: 1; }
+
+/* A filter carries its value, not the name of the field, and tints itself once
+   it is filtering something: "this list is not showing everything" has to be
+   answerable without opening it. */
+.filter {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 14px;
+  padding: 7px 10px; border-radius: var(--r-md); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--hairline-strong); color: var(--ink);
+}
+.filter.on { background: var(--primary-wash); border-color: var(--primary); color: var(--primary-active); }
+
+.hit { display: flex; align-items: center; gap: 10px; padding: 11px var(--s-md); border-bottom: 1px solid var(--hairline); }
+.hit:last-child { border-bottom: 0; }
+.hit .where { display: block; font-size: 13px; color: var(--ink-faint); margin-top: 2px; }
+.hit .num { margin-left: auto; font-family: var(--mono); font-size: 13px; color: var(--ink-muted); }
+
+/* ── the pager ──────────────────────────────────────────── */
+.pager { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 12px; border-top: 1px solid var(--hairline); }
+.pager button {
+  min-width: 32px; height: 32px; border: 0; background: none; font: inherit; font-size: 14px;
+  font-variant-numeric: tabular-nums; color: var(--ink-secondary); border-radius: var(--r-sm); cursor: pointer;
+}
+.pager button.here { background: var(--surface-sunken); color: var(--ink); font-weight: 600; }
+.pager button.step { color: var(--primary); }
+.pager button.step:disabled { color: var(--ink-faint); opacity: .45; cursor: not-allowed; }
+
+/* ── arranging the columns ──────────────────────────────── */
+.lock { border: 0; background: none; color: var(--ink-faint); cursor: pointer; padding: 4px; border-radius: var(--r-sm); line-height: 1; }
+.lock.open { color: var(--primary); background: var(--primary-wash); }
+.sort { border: 0; background: none; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; font-weight: inherit; font-size: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.sort.on { color: var(--ink-secondary); }
+.loose {
+  display: inline-block; animation: wobble .34s ease-in-out infinite;
+  outline: 1px dashed var(--hairline-strong); outline-offset: 3px; border-radius: 2px;
+}
+@keyframes wobble { 0%, 100% { transform: rotate(-.7deg); } 50% { transform: rotate(.7deg); } }
+@media (prefers-reduced-motion: reduce) { .loose { animation: none; } }
+
+/* ── version history ────────────────────────────────────── */
+.version { display: flex; align-items: center; gap: var(--s-sm); padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+.version:last-child { border-bottom: 0; }
+.version .who { flex: 1; }
+.version .who b { font-weight: 500; }
+.version .who small { display: block; font-size: 13px; color: var(--ink-muted); margin-top: 2px; }
+.badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-full); background: var(--secondary-wash); color: var(--secondary); margin-left: 8px; }
 </style>
 </head>
 <body>
@@ -585,6 +641,161 @@ tr.inherited td:first-child::before {
       <span class="toast ok"><span class="mark"></span>Moved to Bank statements <button>Undo</button></span>
       <span class="toast err"><span class="mark"></span>Could not rename: that name is taken</span>
     </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Finding a document</p>
+    <p class="note">Search asks about the whole room, not the folder in front of you: past a few
+      hundred documents the question is where the agreement is, not whether it is in this folder.
+      A result therefore has to say where it lives, because in a numbered index three documents
+      share a name and the folder is the only thing that tells them apart.</p>
+
+    <div class="btn-row" style="align-items:flex-start">
+      <div class="search">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+        <input class="input" placeholder="Search this data room">
+      </div>
+      <div class="search">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+        <input class="input" value="disclosure">
+        <button class="clear">&times;</button>
+      </div>
+      <button class="filter">Modified <span style="color:var(--ink-faint)">&#9662;</span></button>
+      <button class="filter on">Last 7 days <span>&#9662;</span></button>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">The filter is tinted only while it is filtering.
+      A row of these then reads as the filters that are on, rather than as a row of captions.</p>
+
+    <div class="panel" style="margin-top:var(--s-md)">
+      <div class="hit">
+        <svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>
+        <span>Disclosure schedule.pdf<span class="where">03 Legal &rsaquo; Customer agreements</span></span>
+        <span class="num">412 KB</span>
+      </div>
+      <div class="hit">
+        <svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>
+        <span>Disclosure schedule.pdf<span class="where">04 Commercial</span></span>
+        <span class="num">88 KB</span>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">A reader's trail starts at their own grant, never
+      at the room. Finding a document must not name the folders above the one they were given.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Paging</p>
+    <p class="note">Three numbers and two arrows. The arrows scroll the numbers rather than turning
+      the page, so with three pages or fewer there is nowhere to scroll and both are dead. At four
+      the right one wakes, and dies again when the window reaches the end.</p>
+
+    <div class="panel" style="max-width:420px">
+      <div class="pager">
+        <button class="step" disabled>&lsaquo;</button>
+        <button class="here">1</button><button>2</button><button>3</button>
+        <button class="step">&rsaquo;</button>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">Live blue, spent grey. An arrow that looks
+      pressable and does nothing is worse than one that admits it has nowhere to go.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Arranging the columns</p>
+    <p class="note">A heading cannot be both a handle and a button: grab it to drag and it sorts the
+      table underneath you. The lock at the end of the trail picks which one it is, and it starts
+      closed, because sorting is what people do every day and rearranging is what they do once.</p>
+
+    <div class="panel">
+      <div class="crumbs">
+        <a href="#">Project Atlas</a><span class="sep">&rsaquo;</span><span class="here">02 Financials</span>
+        <span style="margin-left:auto"><button class="lock" aria-label="Unlock the columns"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></button></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th><button class="sort">Name &and;</button></th>
+            <th class="mid">Access</th>
+            <th class="mid"><button class="sort on">Size &or;</button></th>
+            <th class="mid"><button class="sort">Modified</button></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Management accounts.pdf</span></td>
+            <td class="access"><span class="chip-access"><span class="dot"></span>Private</span></td>
+            <td class="num">1017 B</td><td class="num">39 minutes ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">Closed, the headings sort. The first click asks
+      what that column is usually asked, the biggest files and the newest changes and names from
+      the top; the second turns it round; the third puts the list back. The chevron marks which
+      one is answering.</p>
+
+    <div class="panel" style="margin-top:var(--s-md)">
+      <div class="crumbs">
+        <a href="#">Project Atlas</a><span class="sep">&rsaquo;</span><span class="here">02 Financials</span>
+        <span style="margin-left:auto"><button class="lock open" aria-label="Lock the columns"><svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.9-.6"/></svg></button></span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th class="mid"><span class="loose">Access</span></th>
+            <th class="mid"><span class="loose">Size</span></th>
+            <th class="mid"><span class="loose">Modified</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="cell-name"><svg class="ico" viewBox="0 0 16 16" fill="currentColor"><path d="M4 1.5h5L13 5.5V14a.5.5 0 0 1-.5.5h-9A.5.5 0 0 1 3 14V2a.5.5 0 0 1 .5-.5z"/></svg>Management accounts.pdf</span></td>
+            <td class="access"><span class="chip-access"><span class="dot"></span>Private</span></td>
+            <td class="num">1017 B</td><td class="num">39 minutes ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">Open, they come loose and wobble to say so, the
+      way an icon does when a home screen is being rearranged. Sorting stops while they are loose,
+      because two modes means two, not one and a half. Name does not wobble: it is the row rather
+      than a column of it, and it stays where it is. The dashed edge is the half that survives a
+      still frame and a screenshot; whoever has asked for less motion keeps it and loses only the
+      movement.</p>
+    <p class="note" style="margin-top:var(--s-xs)">The lock is not remembered between visits. A
+      table still wobbling tomorrow is a table that gets rearranged by accident.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">What a document has been</p>
+    <p class="note">Uploading over a name keeps what was there. The disclosure letter is written
+      against the accounts as they stood on a date, not against whatever is in the room today.</p>
+
+    <div class="dialog" style="width:480px">
+      <h3>History of Management accounts.pdf</h3>
+      <p style="font-size:14px;color:var(--ink-muted)">Uploading over a name keeps what was there.
+        Nothing here is deleted until the file is.</p>
+
+      <div style="margin-top:var(--s-md)">
+        <div class="version">
+          <span class="who"><b>Version 2</b><span class="badge">Current</span>
+            <small>1017 B &middot; 36 minutes ago &middot; demo@dataroom.dev</small></span>
+          <button class="btn btn-utility">&darr;</button>
+        </div>
+        <div class="version">
+          <span class="who"><b>Version 1</b>
+            <small>904 B &middot; 3 days ago &middot; demo@dataroom.dev</small></span>
+          <button class="btn btn-utility">&darr;</button>
+          <button class="btn btn-secondary">Make current</button>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">Restoring an older version adds a new one
+      pointing at its bytes rather than winding the number down: a restore is itself something that
+      happened, and a history that can go backwards is not a history.</p>
+    <p class="note" style="margin-top:var(--s-xs)">The list is the owner's alone. A reader can read
+      the document; that it was re-issued on the fourteenth is a disclosure the seller makes, not
+      one the room makes for them.</p>
   </section>
 
   <section>

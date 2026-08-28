@@ -193,10 +193,15 @@
 
 @utility wobbling {
   animation: wobble 0.34s ease-in-out infinite;
+  /* The dashed edge is the part that survives a still frame, a screenshot and
+     anyone who has asked for less motion. The movement is on top of it. */
+  outline: 1px dashed var(--hairline-strong);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
-/* Somebody who has asked for less motion still has to be told the headers are
-   loose, so they keep the dashed edge and lose only the movement. */
+/* Somebody who has asked for less motion keeps the dashed edge and loses only
+   the movement. */
 @media (prefers-reduced-motion: reduce) {
   .wobbling {
     animation: none;
