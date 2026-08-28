@@ -13,7 +13,7 @@ source rather than as a page.
 | [The design system](https://nizarkenny.github.io/dataroom/design/style-reference.html) | Tokens in both themes, the type scale, every component in every state, the breakpoints, and the rule under each one. The source is [`design/style-reference.html`](design/style-reference.html) |
 | [The API](api.md) | Every route, the three kinds of caller, the two step upload, and what each error code means |
 | [What comes next](roadmap.md) | Eleven things, sized, ordered by what a deal stalls without |
-| [Screenshots](screenshots) | A listing, rows that inherit their access, the share dialog, and what a link holder sees |
+| [Screenshots](screenshots) | A listing, rows that inherit their access, the share dialog, the history of a document, and what a link holder sees |
 
 ## If you have ten minutes
 

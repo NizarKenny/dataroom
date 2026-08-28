@@ -358,6 +358,8 @@ not a history. The list is the owner's alone: a reader can read the document, bu
 that it was re-issued on the fourteenth is a disclosure the seller makes, not one
 the room makes for them.
 
+![The history of a document](docs/screenshots/versions.png)
+
 **One breakpoint carries the responsive work.** Tailwind's own scale, unchanged,
 and only `sm` at 640px does anything: below it the toolbar breaks in two so the
 folder name keeps a line to be read on, the buttons that act on a room drop their
