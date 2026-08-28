@@ -162,7 +162,7 @@ export function LinkView() {
               }}
             >
               <Download />
-              Download
+              {t(d.common.download)}
             </Button>
           </div>
         </div>

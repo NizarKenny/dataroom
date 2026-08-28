@@ -140,10 +140,11 @@ export const d = {
     theDataRooms: p('the data rooms', 'списку кімнат'),
     backTo: (to: string) => p(`Back to ${to}`, `Назад до «${to}»`),
     breadcrumb: p('Breadcrumb', 'Шлях'),
-    moved: p('Moved', 'Переміщено'),
-    deleteFailed: p('That could not be deleted', 'Не вдалося видалити'),
+    movedInto: (name: string) => p(`Moved into ${name}`, `Переміщено до «${name}»`),
+    deleted: (name: string) => p(`${name} deleted`, `«${name}» видалено`),
     renameTitle: (name: string) => p(`Rename ${name}`, `Перейменувати «${name}»`),
     newFolderTitle: p('New folder', 'Нова папка'),
+    useName: (name: string) => p(`Use ${name}`, `Взяти «${name}»`),
   },
 
   search: {
@@ -292,7 +293,10 @@ export const d = {
     title: (name: string) => p(`Delete ${name}?`, `Видалити «${name}»?`),
     sharesThatStop: p('Shares that stop working', 'Доступи, що обірвуться'),
     deleteItems: (n: number) =>
-      p(`Delete ${n} items`, `Видалити ${n} ${plural(n, 'об’єкт', 'об’єкти', 'об’єктів')}`),
+      p(
+        n === 1 ? 'Delete 1 item' : `Delete ${n} items`,
+        `Видалити ${n} ${plural(n, 'об’єкт', 'об’єкти', 'об’єктів')}`,
+      ),
   },
 
   move: {
@@ -300,6 +304,19 @@ export const d = {
     lede: p('Pick where it should go.', 'Виберіть, куди його покласти.'),
     hereNow: p('Here now', 'Зараз тут'),
     move: p('Move', 'Перемістити'),
+    filter: p('Filter folders', 'Фільтр папок'),
+    noMatch: p('No folder here has that name.', 'Тут немає папки з такою назвою.'),
+  },
+
+  preview: {
+    none: p(
+      'This kind of file has no preview. Download it to open it.',
+      'Для такого файлу немає перегляду. Завантажте, щоб відкрити.',
+    ),
+    unreadable: p(
+      'This file could not be read. Download it to open it.',
+      'Не вдалося прочитати файл. Завантажте, щоб відкрити.',
+    ),
   },
 
   link: {

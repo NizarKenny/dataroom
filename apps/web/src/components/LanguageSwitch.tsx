@@ -1,4 +1,5 @@
-import { LOCALES, useLocale, type Locale } from '@/lib/i18n'
+import { d } from '@/lib/dictionary'
+import { LOCALES, useLocale, useT, type Locale } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 const NAMES: Record<Locale, string> = { en: 'EN', ua: 'UA' }
@@ -8,10 +9,15 @@ const NAMES: Record<Locale, string> = { en: 'EN', ua: 'UA' }
  * and a switch you can read is faster than one you have to open.
  */
 export function LanguageSwitch() {
+  const t = useT()
   const { locale, set } = useLocale()
 
   return (
-    <div className="flex gap-0.5 rounded-md bg-sunken p-0.5" role="group" aria-label="Language">
+    <div
+      className="flex gap-0.5 rounded-md bg-sunken p-0.5"
+      role="group"
+      aria-label={t(d.language.label)}
+    >
       {LOCALES.map((option) => (
         <button
           key={option}

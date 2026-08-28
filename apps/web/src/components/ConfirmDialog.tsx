@@ -7,6 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { d } from '@/lib/dictionary'
+import { useT } from '@/lib/i18n'
 import { useState, type ReactNode } from 'react'
 
 interface Props {
@@ -33,7 +35,9 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
 }: Props) {
+  const t = useT()
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,18 +61,23 @@ export function ConfirmDialog({
           </div>
         )}
 
+        {error && <p className="mt-3 text-[13px] text-danger">{error}</p>}
+
         <DialogFooter className="mt-6">
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t(d.common.cancel)}
           </Button>
           <Button
             variant="destructive"
             disabled={busy}
             onClick={async () => {
               setBusy(true)
+              setError(null)
               try {
                 await onConfirm()
                 onOpenChange(false)
+              } catch (problem) {
+                setError(problem instanceof Error ? problem.message : t(d.common.didNotWork))
               } finally {
                 setBusy(false)
               }

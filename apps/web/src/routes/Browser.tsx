@@ -117,14 +117,14 @@ export function Browser() {
   })
 
   const move = useMutation({
-    mutationFn: ({ row, into }: { row: Row; into: string }) =>
+    mutationFn: ({ row, into }: { row: Row; into: string; intoName: string }) =>
       row.kind === 'folder'
         ? api.folders.update(row.id, { parentId: into })
         : api.files.update(row.id, { folderId: into }),
-    onSuccess: () => {
+    onSuccess: (_result, { intoName }) => {
       refresh()
       void queryClient.invalidateQueries({ queryKey: ['room-folders'] })
-      toast.success(t(d.browser.moved))
+      toast.success(t(d.browser.movedInto(intoName)))
     },
   })
 
@@ -134,16 +134,18 @@ export function Browser() {
     onSuccess: (_result, row) => {
       refresh()
       void queryClient.invalidateQueries({ queryKey: ['room-folders'] })
-      toast.success(`${row.name} deleted`)
+      toast.success(t(d.browser.deleted(row.name)))
     },
-    onError: (problem) =>
-      toast.error(problem instanceof Error ? problem.message : t(d.browser.deleteFailed)),
   })
 
   if (view.isPending) return <Loading />
 
   if (view.isError) {
-    const missing = view.error instanceof ApiError && view.error.status === 404
+    // 400 comes back when the id in the address is not even shaped like one,
+    // which is a typed or truncated URL. To the reader that is the same news as
+    // a 404, and "try again in a moment" would be a lie about both.
+    const missing =
+      view.error instanceof ApiError && (view.error.status === 404 || view.error.status === 400)
     return (
       <Shell>
         <div className="rounded-lg border border-hairline bg-surface px-6 py-13 text-center">
@@ -427,8 +429,8 @@ export function Browser() {
         open={creating}
         onOpenChange={setCreating}
         title={t(d.browser.newFolderTitle)}
-        label="Name"
-        submitLabel="Create"
+        label={t(d.common.name)}
+        submitLabel={t(d.common.create)}
         onSubmit={async (name) => {
           await createFolder.mutateAsync(name)
         }}
@@ -438,8 +440,8 @@ export function Browser() {
         open={renaming !== null}
         onOpenChange={(open) => !open && setRenaming(null)}
         title={t(d.browser.renameTitle(renaming?.name ?? ''))}
-        label="Name"
-        submitLabel="Rename"
+        label={t(d.common.name)}
+        submitLabel={t(d.common.rename)}
         initialValue={renaming?.name}
         onSubmit={async (name) => {
           if (renaming) await rename.mutateAsync({ row: renaming, name })
@@ -451,8 +453,8 @@ export function Browser() {
         roomId={room.id}
         currentFolderId={folder.id}
         onOpenChange={(open) => !open && setMoving(null)}
-        onMove={async (row, into) => {
-          await move.mutateAsync({ row, into })
+        onMove={async (row, into, intoName) => {
+          await move.mutateAsync({ row, into, intoName })
         }}
       />
 

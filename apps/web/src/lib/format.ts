@@ -1,5 +1,5 @@
 import { d } from './dictionary'
-import { current, say, type Locale } from './i18n'
+import { current, say, type Locale, type Phrase } from './i18n'
 
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const
 
@@ -54,18 +54,18 @@ export function initialsOf(email: string): string {
   return (parts.length > 1 ? `${parts[0]?.[0]}${parts[1]?.[0]}` : name.slice(0, 2)).toUpperCase()
 }
 
-const TYPE_NAMES: Record<string, string> = {
-  'application/pdf': 'PDF',
-  'text/csv': 'CSV',
-  'text/plain': 'Text',
+const TYPE_NAMES: Record<string, Phrase> = {
+  'application/pdf': { en: 'PDF', ua: 'PDF' },
+  'text/csv': { en: 'CSV', ua: 'CSV' },
+  'text/plain': { en: 'Text', ua: 'Текст' },
 }
 
 /** What to call a file in front of a reader. "application/pdf" is not it. */
-export function describeType(mimeType: string): string {
+export function describeType(mimeType: string): Phrase {
   const type = mimeType.split(';')[0]?.trim() ?? ''
   if (TYPE_NAMES[type]) return TYPE_NAMES[type]
-  if (type.startsWith('image/')) return 'Image'
-  if (type.includes('word')) return 'Document'
-  if (type.includes('sheet') || type.includes('excel')) return 'Spreadsheet'
-  return 'File'
+  if (type.startsWith('image/')) return { en: 'Image', ua: 'Зображення' }
+  if (type.includes('word')) return { en: 'Document', ua: 'Документ' }
+  if (type.includes('sheet') || type.includes('excel')) return { en: 'Spreadsheet', ua: 'Таблиця' }
+  return { en: 'File', ua: 'Файл' }
 }

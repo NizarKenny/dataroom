@@ -8,7 +8,9 @@ import {
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DownloadLink } from '@/lib/api'
+import { d } from '@/lib/dictionary'
 import { describeType, formatBytes } from '@/lib/format'
+import { useT, type Phrase } from '@/lib/i18n'
 import { useQuery } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 
@@ -22,6 +24,7 @@ interface Props {
 }
 
 export function FilePreview({ file, onOpenChange, getLink, scope }: Props) {
+  const t = useT()
   const link = useQuery({
     queryKey: ['preview', scope, file?.id],
     queryFn: () => getLink(file!.id, 'inline'),
@@ -36,7 +39,7 @@ export function FilePreview({ file, onOpenChange, getLink, scope }: Props) {
             <DialogHeader>
               <DialogTitle className="truncate pr-8">{file.name}</DialogTitle>
               <DialogDescription>
-                {formatBytes(file.sizeBytes)} · {describeType(file.mimeType)}
+                {formatBytes(file.sizeBytes)} · {t(describeType(file.mimeType))}
               </DialogDescription>
             </DialogHeader>
 
@@ -54,7 +57,7 @@ export function FilePreview({ file, onOpenChange, getLink, scope }: Props) {
                 }}
               >
                 <Download />
-                Download
+                {t(d.common.download)}
               </Button>
             </div>
           </>
@@ -80,17 +83,44 @@ function Preview({ url, type, name }: { url: string; type: string; name: string 
     )
   }
 
-  if (type === 'text/plain' || type === 'text/csv') {
-    return <iframe src={url} title={name} className="size-full border-0 bg-surface" />
-  }
+  if (type.startsWith('text/')) return <TextPreview url={url} />
 
   // Anything the browser cannot render honestly says so rather than showing an
   // empty frame and letting the reader wonder whether the file is broken.
+  return <Unrenderable phrase={d.preview.none} />
+}
+
+/**
+ * Text is fetched and printed rather than framed. A browser hands text/plain to
+ * an iframe and downloads text/csv, so the frame that worked for a note came up
+ * blank for a spreadsheet export, which is most of the text in a data room.
+ */
+function TextPreview({ url }: { url: string }) {
+  const text = useQuery({
+    queryKey: ['preview-text', url],
+    queryFn: async () => {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(String(response.status))
+      return response.text()
+    },
+    retry: false,
+  })
+
+  if (text.isPending) return <Skeleton className="size-full" />
+  if (text.isError) return <Unrenderable phrase={d.preview.unreadable} />
+
+  return (
+    <pre className="size-full overflow-auto bg-surface p-4 font-mono text-[13px] leading-[1.6] whitespace-pre">
+      {text.data}
+    </pre>
+  )
+}
+
+function Unrenderable({ phrase }: { phrase: Phrase }) {
+  const t = useT()
   return (
     <div className="grid size-full place-items-center p-6 text-center">
-      <p className="max-w-[42ch] text-ink-muted">
-        This kind of file has no preview. Download it to open it.
-      </p>
+      <p className="max-w-[42ch] text-ink-muted">{t(phrase)}</p>
     </div>
   )
 }

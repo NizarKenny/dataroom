@@ -76,7 +76,7 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
       <table className="w-full min-w-[540px] border-collapse">
         <thead>
           <tr>
-            <Th className="w-full">
+            <Th className="w-full" aria-sort={sortState('name', sort, columns.unlocked)}>
               {/* Not draggable, so it does not wobble, but it stops sorting
                   with the others: two modes means two, not one and a half. */}
               <Label id="name" sort={sort} onSort={onSort} unlocked={columns.unlocked}>
@@ -100,6 +100,7 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
                 }}
                 onDragLeave={() => setOver((current) => (current === id ? null : current))}
                 onDrop={() => drop(id)}
+                aria-sort={sortState(id === 'access' ? null : id, sort, columns.unlocked)}
                 // Label and values share one axis down the middle of the
                 // column. Ranged left or right they hang off an edge instead,
                 // and a column of "just now" over "22 minutes ago" then drifts
@@ -184,6 +185,22 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
 }
 
 /**
+ * aria-sort belongs to the cell, not to the control inside it: a screen reader
+ * reads it off the column header while walking the row, and never visits the
+ * button. Columns that cannot be sorted say nothing at all rather than "none",
+ * which would announce a sort that is not on offer.
+ */
+function sortState(
+  id: SortBy | null,
+  sort: Sort,
+  unlocked: boolean,
+): 'ascending' | 'descending' | 'none' | undefined {
+  if (id === null || unlocked) return undefined
+  if (sort.by !== id) return 'none'
+  return sort.dir === 'asc' ? 'ascending' : 'descending'
+}
+
+/**
  * A header does one job at a time. With the lock closed it sorts; with the lock
  * open it is a handle for dragging, and a handle that also fires on click is a
  * handle that sorts the table every time somebody grabs it.
@@ -216,7 +233,6 @@ function Label({
   return (
     <button
       onClick={() => onSort(id)}
-      aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={cn(
         'inline-flex items-center gap-1 uppercase transition-colors hover:text-ink-muted',
         on && 'text-ink-secondary',
@@ -289,7 +305,7 @@ function AccessChips({ access }: { access: AccessBadge }) {
       {link && (
         <Chip className="bg-primary-wash text-primary-active">
           <Dot />
-          Link
+          {t(d.share.link)}
         </Chip>
       )}
       {people > 0 && (

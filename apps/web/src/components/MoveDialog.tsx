@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { d } from '@/lib/dictionary'
@@ -21,13 +22,15 @@ interface Props {
   roomId: string
   currentFolderId: string
   onOpenChange: (open: boolean) => void
-  onMove: (row: Row, folderId: string) => Promise<void>
+  onMove: (row: Row, folderId: string, folderName: string) => Promise<void>
 }
 
 export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove }: Props) {
   const t = useT()
   const [chosen, setChosen] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState('')
 
   const folders = useQuery({
     queryKey: ['room-folders', roomId],
@@ -36,7 +39,11 @@ export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove 
   })
 
   useEffect(() => {
-    if (row) setChosen(null)
+    if (row) {
+      setChosen(null)
+      setError(null)
+      setFilter('')
+    }
   }, [row])
 
   // A folder cannot land inside itself, so its own subtree is not on offer.
@@ -48,6 +55,14 @@ export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove 
     }
   }
 
+  // A room with a hundred folders is a room where scrolling is not an answer.
+  // Filtering flattens the tree on purpose: once you are typing a name, the
+  // indentation is telling you about folders you are no longer looking at.
+  const needle = filter.trim().toLowerCase()
+  const shown = (folders.data ?? []).filter(
+    (folder) => needle.length === 0 || folder.name.toLowerCase().includes(needle),
+  )
+
   return (
     <Dialog open={row !== null} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
@@ -58,15 +73,30 @@ export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove 
               <DialogDescription>{t(d.move.lede)}</DialogDescription>
             </DialogHeader>
 
-            <div className="mt-4 max-h-[280px] overflow-y-auto rounded-md border border-hairline">
-              {folders.data?.map((folder) => {
+            <Input
+              value={filter}
+              onChange={(event) => setFilter(event.target.value)}
+              placeholder={t(d.move.filter)}
+              className="mt-4"
+            />
+
+            <div className="mt-2 max-h-[280px] overflow-y-auto rounded-md border border-hairline">
+              {shown.length === 0 && folders.data && (
+                <p className="px-3 py-6 text-center text-[13px] text-ink-muted">
+                  {t(d.move.noMatch)}
+                </p>
+              )}
+              {shown.map((folder) => {
                 const blocked = forbidden.has(folder.id) || folder.id === currentFolderId
                 return (
                   <button
                     key={folder.id}
                     disabled={blocked}
-                    onClick={() => setChosen(folder.id)}
-                    style={{ paddingLeft: 12 + folder.depth * 16 }}
+                    onClick={() => {
+                      setChosen(folder.id)
+                      setError(null)
+                    }}
+                    style={{ paddingLeft: needle.length > 0 ? 12 : 12 + folder.depth * 16 }}
                     className={cn(
                       'flex w-full items-center gap-2 py-2 pr-3 text-left text-sm',
                       blocked ? 'text-ink-faint' : 'hover:bg-sunken',
@@ -83,25 +113,35 @@ export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove 
               })}
             </div>
 
+            {error && <p className="mt-2 text-[13px] text-danger">{error}</p>}
+
             <DialogFooter className="mt-6">
               <Button variant="secondary" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t(d.common.cancel)}
               </Button>
               <Button
                 variant="primary"
                 disabled={chosen === null || busy}
                 onClick={async () => {
                   if (!chosen) return
+                  const into = folders.data?.find((folder) => folder.id === chosen)
                   setBusy(true)
+                  setError(null)
                   try {
-                    await onMove(row, chosen)
+                    await onMove(row, chosen, into?.name ?? '')
                     onOpenChange(false)
+                  } catch (problem) {
+                    // A name already taken in the destination is the ordinary
+                    // reason this fails, and it is the reader's to fix, so it
+                    // belongs next to the list rather than in a toast that
+                    // outlives the dialog.
+                    setError(problem instanceof Error ? problem.message : t(d.common.didNotWork))
                   } finally {
                     setBusy(false)
                   }
                 }}
               >
-                Move
+                {t(d.move.move)}
               </Button>
             </DialogFooter>
           </>

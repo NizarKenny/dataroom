@@ -60,10 +60,8 @@ export function Rooms() {
     mutationFn: (room: RoomSummary) => api.rooms.remove(room.id),
     onSuccess: (_result, room) => {
       refresh()
-      toast.success(`${room.name} deleted`)
+      toast.success(t(d.browser.deleted(room.name)))
     },
-    onError: (problem) =>
-      toast.error(problem instanceof Error ? problem.message : t(d.browser.deleteFailed)),
   })
 
   async function openRoom(room: RoomSummary) {
@@ -96,7 +94,7 @@ export function Rooms() {
           </div>
           <Button variant="primary" onClick={() => setCreating(true)}>
             <Plus />
-            New data room
+            {t(d.rooms.newRoom)}
           </Button>
         </div>
 
@@ -145,8 +143,7 @@ export function Rooms() {
                   </span>
                 ) : (
                   <span className="tabular text-[13px] whitespace-nowrap text-ink-muted">
-                    {room.files} {room.files === 1 ? 'file' : 'files'} ·{' '}
-                    {formatBytes(room.bytes ?? 0)}
+                    {t(d.rooms.fileCount(room.files ?? 0))} · {formatBytes(room.bytes ?? 0)}
                   </span>
                 )}
 
@@ -198,10 +195,10 @@ export function Rooms() {
       <PromptDialog
         open={creating}
         onOpenChange={setCreating}
-        title="New data room"
-        description="Name it after the deal. You can rename it later."
-        label="Name"
-        submitLabel="Create"
+        title={t(d.rooms.newTitle)}
+        description={t(d.rooms.newLede)}
+        label={t(d.common.name)}
+        submitLabel={t(d.common.create)}
         onSubmit={async (name) => {
           await create.mutateAsync(name)
         }}
@@ -211,8 +208,8 @@ export function Rooms() {
         open={renaming !== null}
         onOpenChange={(open) => !open && setRenaming(null)}
         title={t(d.browser.renameTitle(renaming?.name ?? ''))}
-        label="Name"
-        submitLabel="Rename"
+        label={t(d.common.name)}
+        submitLabel={t(d.common.rename)}
         initialValue={renaming?.name}
         onSubmit={async (name) => {
           if (renaming) await rename.mutateAsync({ id: renaming.id, name })
@@ -222,17 +219,17 @@ export function Rooms() {
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Delete ${deleting?.name ?? ''}?`}
-        description="The whole room goes, with every document in it and every link into it. This cannot be undone."
+        title={t(d.del.title(deleting?.name ?? ''))}
+        description={t(d.rooms.deleteLede)}
         manifest={
           deleting
             ? [
-                { label: 'Files', value: deleting.files ?? 0 },
-                { label: 'Size', value: formatBytes(deleting.bytes ?? 0) },
+                { label: t(d.common.files), value: deleting.files ?? 0 },
+                { label: t(d.common.size), value: formatBytes(deleting.bytes ?? 0) },
               ]
             : undefined
         }
-        confirmLabel="Delete the data room"
+        confirmLabel={t(d.rooms.deleteConfirm)}
         onConfirm={async () => {
           if (deleting) await remove.mutateAsync(deleting)
         }}

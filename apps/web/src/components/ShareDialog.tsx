@@ -228,9 +228,9 @@ function Body({ target, onChanged }: { target: ShareTarget; onChanged: () => voi
             <ConfirmDialog
               open={turningOff}
               onOpenChange={setTurningOff}
-              title="Turn this link off?"
-              description="Every copy of it stops working, wherever it has been sent. Anyone who needs access after that has to be given a new link or invited by name."
-              confirmLabel="Turn it off"
+              title={t(d.share.turnOffTitle)}
+              description={t(d.share.turnOffLede)}
+              confirmLabel={t(d.share.turnItOff)}
               onConfirm={async () => {
                 await revoke.mutateAsync(link.id)
               }}
