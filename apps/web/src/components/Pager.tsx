@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { d } from '@/lib/dictionary'
 import { useT } from '@/lib/i18n'
-import { pageWindow, windowFor } from '@/lib/pager'
+import { isLive, pageWindow, windowFor } from '@/lib/pager'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -13,9 +13,11 @@ interface Props {
 }
 
 /**
- * Three page numbers and two arrows. The arrows scroll the numbers rather than
- * turning the page, which is why they go dead as soon as the window is against
- * an end: with three pages or fewer they never wake up at all.
+ * Three page numbers and two arrows, always. A folder that fits on one page
+ * still draws them, greyed, so the shape of the control is learned once rather
+ * than discovered by the one folder large enough to grow it. The arrows scroll
+ * the numbers rather than turning the page, so they stay dead until there is a
+ * fourth page to scroll to.
  */
 export function Pager({ page, pages, onGoTo }: Props) {
   const t = useT()
@@ -30,7 +32,6 @@ export function Pager({ page, pages, onGoTo }: Props) {
   }, [page, pages])
 
   const { numbers, canGoBack, canGoForward } = pageWindow(pages, start)
-  if (pages < 2) return null
 
   return (
     <nav
@@ -45,19 +46,23 @@ export function Pager({ page, pages, onGoTo }: Props) {
         <ChevronLeft />
       </Arrow>
 
-      {numbers.map((number) => (
-        <Button
-          key={number}
-          variant="utility"
-          size="icon"
-          aria-label={t(d.pager.page(number))}
-          aria-current={number === page ? 'page' : undefined}
-          onClick={() => onGoTo(number)}
-          className={cn('tabular', number === page && 'bg-sunken font-semibold text-ink')}
-        >
-          {number}
-        </Button>
-      ))}
+      {numbers.map((number) => {
+        const live = isLive(number, pages)
+        return (
+          <Button
+            key={number}
+            variant="utility"
+            size="icon"
+            aria-label={t(d.pager.page(number))}
+            aria-current={number === page ? 'page' : undefined}
+            disabled={!live}
+            onClick={() => onGoTo(number)}
+            className={cn('tabular', number === page && live && 'bg-sunken font-semibold text-ink')}
+          >
+            {number}
+          </Button>
+        )
+      })}
 
       <Arrow
         label={t(d.pager.later)}

@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { pageWindow, windowFor } from './pager'
+import { isLive, pageWindow, windowFor } from './pager'
 
 describe('pageWindow', () => {
-  it('shows one number and no way out of it', () => {
-    expect(pageWindow(1, 1)).toMatchObject({ numbers: [1], canGoBack: false, canGoForward: false })
+  it('draws three numbers for a folder that fits on one page', () => {
+    expect(pageWindow(1, 1)).toMatchObject({
+      numbers: [1, 2, 3],
+      canGoBack: false,
+      canGoForward: false,
+    })
   })
 
-  it('shows two, still going nowhere', () => {
+  it('draws the same three for two pages', () => {
     expect(pageWindow(2, 1)).toMatchObject({
-      numbers: [1, 2],
+      numbers: [1, 2, 3],
       canGoBack: false,
       canGoForward: false,
     })
@@ -49,6 +53,14 @@ describe('pageWindow', () => {
   it('will not scroll past the end, however hard it is pushed', () => {
     expect(pageWindow(5, 99)).toMatchObject({ numbers: [3, 4, 5], canGoForward: false })
     expect(pageWindow(5, -3)).toMatchObject({ numbers: [1, 2, 3], canGoBack: false })
+  })
+})
+
+describe('isLive', () => {
+  it('lights only the pages the folder actually has', () => {
+    expect([1, 2, 3].map((n) => isLive(n, 1))).toEqual([true, false, false])
+    expect([1, 2, 3].map((n) => isLive(n, 2))).toEqual([true, true, false])
+    expect([1, 2, 3].map((n) => isLive(n, 9))).toEqual([true, true, true])
   })
 })
 

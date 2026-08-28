@@ -37,9 +37,10 @@ Five things worth opening:
 4. Type into the search field. It looks at the names of files and folders across
    the whole room and says where each one sits. As the reader it finds only what
    they were given.
-5. Open `05 Data pack`, which holds more rows than one page. The pager shows
-   three numbers and two arrows, and the arrows scroll the numbers rather than
-   turning the page. Click a column heading to sort by it: the first click asks
+5. Open `05 Data pack`, which holds more rows than one page. The pager is three
+   numbers and two arrows in every folder, greyed down to what is really there,
+   and the arrows scroll the numbers rather than turning the page. Click a
+   column heading to sort by it: the first click asks
    what that column is usually asked, the second turns it round, the third puts
    the list back. Then open the lock at the end of the breadcrumb row: the
    headings come loose and can be dragged into another order, and stop sorting

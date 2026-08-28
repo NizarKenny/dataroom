@@ -300,7 +300,7 @@ tr.inherited td:first-child::before {
 }
 .pager button.here { background: var(--surface-sunken); color: var(--ink); font-weight: 600; }
 .pager button.step { color: var(--primary); }
-.pager button.step:disabled { color: var(--ink-faint); opacity: .45; cursor: not-allowed; }
+.pager button:disabled { color: var(--ink-faint); opacity: .45; cursor: not-allowed; }
 
 /* ── arranging the columns ──────────────────────────────── */
 .lock { border: 0; background: none; color: var(--ink-faint); cursor: pointer; padding: 4px; border-radius: var(--r-sm); line-height: 1; }
@@ -691,19 +691,30 @@ tr.inherited td:first-child::before {
 
   <section>
     <p class="eyebrow">Paging</p>
-    <p class="note">Three numbers and two arrows. The arrows scroll the numbers rather than turning
-      the page, so with three pages or fewer there is nowhere to scroll and both are dead. At four
-      the right one wakes, and dies again when the window reaches the end.</p>
+    <p class="note">Three numbers and two arrows, in every folder. A control that appears only once
+      a folder outgrows a page is a control nobody knows is there, so it is always drawn and only
+      the live part of it lights up: one page lights one number, two light two. The arrows scroll
+      the numbers rather than turning the page, so both stay dead until a fourth page exists to
+      scroll to, and the right one dies again when the window reaches the end.</p>
 
     <div class="panel" style="max-width:420px">
+      <div class="pager">
+        <button class="step" disabled>&lsaquo;</button>
+        <button class="here">1</button><button disabled>2</button><button disabled>3</button>
+        <button class="step" disabled>&rsaquo;</button>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--s-xs)">One page. The frame is there, and it says so.</p>
+
+    <div class="panel" style="max-width:420px;margin-top:var(--s-xs)">
       <div class="pager">
         <button class="step" disabled>&lsaquo;</button>
         <button class="here">1</button><button>2</button><button>3</button>
         <button class="step">&rsaquo;</button>
       </div>
     </div>
-    <p class="note" style="margin-top:var(--s-xs)">Live blue, spent grey. An arrow that looks
-      pressable and does nothing is worse than one that admits it has nowhere to go.</p>
+    <p class="note" style="margin-top:var(--s-xs)">Four or more. Live blue, spent grey. A control
+      that looks pressable and does nothing is worse than one that admits it has nowhere to go.</p>
   </section>
 
   <section>
