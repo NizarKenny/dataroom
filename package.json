@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run generate --workspace @dataroom/api",
     "dev": "concurrently -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "npm run dev -w @dataroom/api",
     "dev:web": "npm run dev -w @dataroom/web",
