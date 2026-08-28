@@ -26,9 +26,9 @@ interface Props {
 }
 
 /**
- * A flat list, because search results are not a folder. Each one carries where it
+ * A flat list, because search results are not a folder. Each carries where it
  * sits: in a numbered index three documents can share a name, and the folder is
- * the only thing that tells them apart.
+ * the only thing telling them apart.
  */
 export function SearchResults({ query, results, pending, onOpenFile, onOpenFolder }: Props) {
   const t = useT()

@@ -497,12 +497,7 @@ export function Browser() {
   )
 }
 
-/**
- * One screen, and only the rows move inside it. The bar, the toolbar, the trail
- * and the pager are all where they were a moment ago, which is what makes a
- * pager usable: the control that turns the page is not at the bottom of the page
- * it turns.
- */
+/** One screen. Only the rows move inside it, so the pager stays reachable. */
 function Shell({ name, children }: { name?: string; children: React.ReactNode }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-canvas">

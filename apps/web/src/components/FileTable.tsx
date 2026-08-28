@@ -79,10 +79,9 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
     // still the state from before the press: the gesture would be dropped.
     held.current = id
 
-    // Capture keeps the drag alive when the pointer wanders off the header row.
-    // It throws for a pointer the browser no longer calls active, which is not
-    // worth losing the drag over: the handlers on the other headings carry the
-    // gesture instead.
+    // Capture keeps the drag alive off the header row. It throws for a pointer
+    // the browser no longer calls active, which is not worth losing the drag
+    // over: the other headings carry the gesture instead.
     try {
       event.currentTarget.setPointerCapture(event.pointerId)
     } catch {
@@ -112,11 +111,9 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
   }
 
   return (
-    // The one part of the page that scrolls. Everything around it, the toolbar
-    // above and the pager below, stays where the reader left it, so getting to
-    // page four never means scrolling back up to find the control that does it.
-    // Sideways too: the columns have a floor below which they crush rather than
-    // reflow, so on a narrow screen the table slides and the page does not.
+    // The one part of the page that scrolls, in both directions: everything
+    // around it holds its place, and the columns have a floor below which they
+    // crush rather than reflow.
     <div className="min-h-0 flex-1 overflow-auto">
       <table className="w-full min-w-[540px] border-collapse">
         <thead>
@@ -138,10 +135,9 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
                 onPointerUp={drop}
                 onPointerCancel={drop}
                 aria-sort={sortState(id === 'access' ? null : id, sort, columns.unlocked)}
-                // Label and values share one axis down the middle of the
-                // column. Ranged left or right they hang off an edge instead,
-                // and a column of "just now" over "22 minutes ago" then drifts
-                // by the difference between them on every row.
+                // Label and values on one axis down the middle. Ranged to an
+                // edge instead, "just now" over "22 minutes ago" drifts by the
+                // difference between them on every row.
                 className={cn(
                   'min-w-[104px] text-center select-none',
                   // A finger dragging a heading would otherwise scroll the list
@@ -225,10 +221,9 @@ export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
 }
 
 /**
- * aria-sort belongs to the cell, not to the control inside it: a screen reader
- * reads it off the column header while walking the row, and never visits the
- * button. Columns that cannot be sorted say nothing at all rather than "none",
- * which would announce a sort that is not on offer.
+ * aria-sort belongs to the cell, not to the button inside it, which a screen
+ * reader never visits. A column that cannot be sorted says nothing rather than
+ * "none", which would announce a sort that is not on offer.
  */
 function sortState(
   id: SortBy | null,
@@ -325,12 +320,9 @@ function RowIcon({ row }: { row: Row }) {
 }
 
 /**
- * Only what was granted on this row itself. Access that came from above is drawn
- * by the rail and explained once by the banner over the table, so repeating it
- * here would be the same fact three times.
- *
- * A row nothing reaches says so. A column of blanks reads as one that failed to
- * load, rather than as a room where most things are private.
+ * Only what was granted on this row itself: access from above is already drawn
+ * by the rail and named once by the banner. A row nothing reaches still says so,
+ * because a column of blanks reads as one that failed to load.
  */
 const grantedHere = (access: AccessBadge) => access.here.people > 0 || access.here.link
 

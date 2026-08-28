@@ -12,14 +12,10 @@ export interface PageWindow {
 /**
  * The numbers a pager shows, and whether each arrow has anywhere to go.
  *
- * The pager is always three numbers and two arrows, in one folder or in a
- * hundred: a control that appears only once a folder outgrows a page is a
- * control nobody knows is there. What changes is how much of it is alive. One
- * page lights one number, two pages light two, and the arrows wake up at four,
- * where there is finally a fourth number to scroll to.
- *
- * The arrows scroll the window rather than turning the page, so the right one
- * dies again the moment the window reaches the end.
+ * Always three numbers, in one folder or in a hundred; what changes is how many
+ * of them are alive. The arrows scroll the window rather than turning the page,
+ * so they stay dead until there is a fourth page to scroll to, and the right one
+ * dies again once the window reaches the end.
  */
 export function pageWindow(pages: number, start: number): PageWindow {
   const furthest = Math.max(1, pages - WINDOW + 1)

@@ -22,10 +22,7 @@ interface Props {
   onConfirm: () => Promise<void>
 }
 
-/**
- * The shape every destructive step in this app takes: say what goes, count it,
- * and put the quiet danger button on the right.
- */
+/** Every destructive step takes this shape: say what goes, and count it. */
 export function ConfirmDialog({
   open,
   onOpenChange,

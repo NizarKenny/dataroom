@@ -12,13 +12,7 @@ interface Props {
   onGoTo: (page: number) => void
 }
 
-/**
- * Three page numbers and two arrows, always. A folder that fits on one page
- * still draws them, greyed, so the shape of the control is learned once rather
- * than discovered by the one folder large enough to grow it. The arrows scroll
- * the numbers rather than turning the page, so they stay dead until there is a
- * fourth page to scroll to.
- */
+/** Draws what pageWindow works out. The rule it follows lives there. */
 export function Pager({ page, pages, onGoTo }: Props) {
   const t = useT()
   const [start, setStart] = useState(() => windowFor(page, pages))

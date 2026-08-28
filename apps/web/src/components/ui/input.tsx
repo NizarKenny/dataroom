@@ -2,12 +2,9 @@ import { cn } from '@/lib/utils'
 import type { ComponentProps } from 'react'
 
 /**
- * The field from the style reference: one size at 15px, a 5px radius, a real
- * border rather than a shadow, and the focus outline drawn inside the edge.
- *
- * That inset is the single documented departure from the one focus treatment in
- * index.css. Same colour, same width; only the offset changes, because an outset
- * ring on a full width field collides with the edge of the dialog holding it.
+ * The field from the style reference. Its focus outline is drawn inside the
+ * edge: the one departure from the treatment in index.css, because an outset
+ * ring on a full width field collides with the dialog holding it.
  */
 export function Input({ className, type, ...props }: ComponentProps<'input'>) {
   return (

@@ -8,8 +8,8 @@ if (!url || !key) {
 }
 
 /**
- * Used for one thing only: signing in and holding the session. Every piece of data
- * in this app comes from our own API, because Supabase's data API is switched off
- * and the key above is public by design.
+ * Signing in and holding the session, nothing else. Every piece of data comes
+ * from our own API: the Supabase data API is switched off and the key above is
+ * public by design.
  */
 export const supabase = createClient(url, key)

@@ -609,7 +609,8 @@ tr.inherited td:first-child::before {
       </div>
       <p class="note" style="margin:0">One file failing must not take the batch with it. Each row owns
         its own progress, its own error and its own conflict decision. Progress is real: the browser uploads straight to storage on a signed
-        URL, so the percentage is the request, not a guess.</p>
+        URL, so the percentage is the request, not a guess. The same conflict met while renaming gets
+        the same courtesy in the dialog: refused, and offered the nearest free name to take instead.</p>
     </div>
   </section>
 

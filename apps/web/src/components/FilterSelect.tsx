@@ -26,9 +26,9 @@ interface Props<T extends string> {
 }
 
 /**
- * A single choice, worn on the toolbar. It carries the chosen value rather than
- * the name of the field, and tints itself once it is filtering something, so
- * "this list is not showing everything" is answerable without opening it.
+ * One choice on the toolbar. It shows the chosen value rather than the name of
+ * the field, and tints once it is filtering, so a narrowed list says so without
+ * being opened.
  */
 export function FilterSelect<T extends string>({
   icon: Icon,

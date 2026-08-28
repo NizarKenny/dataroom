@@ -8,12 +8,7 @@ interface Props {
   through: 'invitation' | 'link'
 }
 
-/**
- * The owner's side of this product explains itself: a banner, a chip on a row, a
- * rail down rows that inherit. The reader saw none of it and got a bare file list
- * with a blue tick nobody had explained. This is their half of the same sentence,
- * and it is the first thing on their first screen.
- */
+/** What a reader is looking at, and where their access begins. */
 export function ReaderBanner({ grantedAt, through }: Props) {
   const t = useT()
 

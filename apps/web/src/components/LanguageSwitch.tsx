@@ -4,10 +4,7 @@ import { cn } from '@/lib/utils'
 
 const NAMES: Record<Locale, string> = { en: 'EN', ua: 'UA' }
 
-/**
- * Two words rather than a flag and a menu. There are two languages, both fit,
- * and a switch you can read is faster than one you have to open.
- */
+/** Two languages, both short enough to show rather than hide behind a menu. */
 export function LanguageSwitch() {
   const t = useT()
   const { locale, set } = useLocale()

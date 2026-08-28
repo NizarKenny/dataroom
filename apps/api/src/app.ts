@@ -89,8 +89,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     return reply.status(500).send({ error: 'internal', message: 'Something went wrong on our side' })
   })
 
-  // Somebody will paste this host into a browser. Answering with something is
-  // friendlier than a 404, and it says nothing that is not already public.
+  // Somebody will paste this host into a browser. In production they get
+  // public/index.html, which the platform serves before the rewrite reaches
+  // this; locally, and for anything asking for JSON, this is the answer.
   app.get('/', async () => ({
     service: 'data-room-api',
     app: env.WEB_ORIGIN.split(',')[0],

@@ -37,16 +37,16 @@ Five things worth opening:
 4. Type into the search field. It looks at the names of files and folders across
    the whole room and says where each one sits. As the reader it finds only what
    they were given.
-5. Open `05 Data pack`, which holds more rows than one page. The pager is three
-   numbers and two arrows in every folder, greyed down to what is really there,
-   and the arrows scroll the numbers rather than turning the page. Click a
-   column heading to sort by it: the first click asks
-   what that column is usually asked, the second turns it round, the third puts
-   the list back. Then open the lock at the end of the breadcrumb row: the
-   headings come loose and can be dragged into another order by mouse or by
-   finger, and stop sorting
-   while they are loose. The arrangement is remembered; the sort rides in the
-   URL, so a sorted folder can be sent to somebody as it looks.
+5. Open `05 Data pack`, which holds more rows than one page. Only the rows
+   scroll: the pager, the headings and the toolbar stay on screen. The pager is
+   three numbers and two arrows in every folder, greyed down to what is really
+   there, and the arrows scroll the numbers rather than turning the page. Click
+   a heading to sort by it: the first click asks what that column is usually
+   asked, the second turns it round, the third puts the list back. Then open the
+   lock at the end of the breadcrumb row: the headings come loose, can be dragged
+   into another order by mouse or by finger, and stop sorting while they are
+   loose. The arrangement is remembered; the sort rides in the URL, so a sorted
+   folder can be sent to somebody as it looks.
 
 The interface is in English and Ukrainian, switched in the top bar.
 
@@ -82,8 +82,8 @@ Checks:
 
 ```bash
 npm run typecheck --workspaces      # api and web
-npm run test --workspaces --if-present   # 69 unit tests: 49 over the path, access and name
-                                         # rules, 20 over the pager, sort and column layout
+npm run test --workspaces --if-present   # 70 unit tests: 49 over the path, access and name
+                                         # rules, 21 over the pager, sort and column layout
 npm run smoke --workspace @dataroom/api   # end to end against the real database and bucket
 ```
 
@@ -195,11 +195,9 @@ what answers this one. It answers the same question asked without a grantee,
 which is the owner's view of who can reach a node, and there it is a plain index
 scan at 1.9 ms.
 
-Both this and the subtree figures further down were measured by building the rows
-in a throwaway schema on the real Postgres, reading `EXPLAIN (ANALYZE, BUFFERS)`
-and dropping the schema. There is no benchmark in the repository to rerun: they
-are one measurement each, quoted rather than asserted, and worth what a single
-measurement is worth.
+These figures and the subtree ones below come from `EXPLAIN (ANALYZE, BUFFERS)`
+against rows built in a throwaway schema on the real Postgres. One measurement
+each, quoted rather than asserted, with no benchmark in the repository to rerun.
 
 When several shares cover a node, the closest one wins, because that is the one
 the interface names: a share on the file beats a share on its folder, which beats
@@ -275,11 +273,10 @@ exists.
 
 **Searching by name.** "Contains" is not a question a btree can answer, so
 `files_name_trgm_idx` is a GIN index over trigrams of `files.name`. Folders are
-searched too, and are the cheaper half: a room holds tens of thousands of files
-and hundreds of folders, so that side is a scan of something small. The access
-filter rides along as an `OR` of path prefixes, which is the same shape and the
-same index as every other access check here, so a reader's search costs what
-their grants cost rather than what the room holds.
+searched too and are the cheap half: a room holds tens of thousands of files and
+hundreds of folders. The access filter rides along as the same `OR` of path
+prefixes every other access check uses, so a reader's search costs what their
+grants cost rather than what the room holds.
 
 **Many people and many shares.** Access is the one indexed query above, so its
 cost follows the depth of the node, not the number of shares in the room or the
@@ -294,14 +291,10 @@ The price is the copy of `resource_path` on the share. When the shared folder
 moves, that copy has to move with it, which happens in the same transaction as
 the move. Miss it and readers silently lose access; the smoke test covers it.
 
-The listing annotates rows by loading the room's live shares once and evaluating
-the same rules in memory. A room holds tens of shares, not thousands, so this is
-one query rather than one per row. The keys for a row are built once and each
-share is tested against them by hash lookup; building them per share instead
-makes drawing a folder cost rows multiplied by shares, which is a slow listing
-long before the queries are the problem. If a room ever did hold thousands of
-shares, the same answer comes from a `resource_path in (...)` over the listed
-rows.
+Annotating a listing loads the room's live shares once and applies the same rules
+in memory, one query rather than one per row. A room that ever did hold thousands
+of shares would get the same answer from a `resource_path in (...)` over the rows
+on the page.
 
 **Large files, several at once.** The browser asks the API for a signed URL and
 uploads straight to storage. Bytes never pass through a function, so no request
@@ -316,15 +309,11 @@ describes what is actually there. The limit is checked when the upload is asked
 for, again against what storage reports, and a third time by the bucket, which is
 the one a client cannot argue with.
 
-The content type is not authoritative in the same way: it is whatever the
-uploader's browser put on the object, and it round trips through storage looking
-like a fact. Two things follow. A file whose recorded type is one the browser
-would run rather than show is not kept at all: the object is removed and the
-upload refused, because a document room has no use for one and the storage host
-is not ours. Everything else is inert there whatever it contains, because that
-host sends `X-Content-Type-Options: nosniff`. The inline or attachment choice on
-top of that is a courtesy, not a control: the disposition rides outside the
-signature on a storage URL, so whoever holds the URL can ask for either.
+The content type is not trustworthy in the same way: it is whatever the uploader's
+browser put on the object. A file whose recorded type is one a browser would run
+rather than show is deleted and the upload refused, because the storage host is
+not ours. Everything else is inert there whatever it holds, because that host
+sends `X-Content-Type-Options: nosniff`.
 
 Not built: resumable uploads. Supabase Storage speaks TUS; the queue here retries
 a whole file instead.
@@ -360,26 +349,24 @@ fine the answer is a separate public identifier, not a different primary key.
 The file keeps its id, so every share and every link that pointed at the document
 still points at it and now serves the new bytes; the old bytes keep their own
 object key and nothing is overwritten. Restoring an older version appends a new
-one pointing at those bytes rather than winding the number down, because a
-restore is itself something that happened and a history that can go backwards is
-not a history. The list is the owner's alone: a reader can read the document, but
-that it was re-issued on the fourteenth is a disclosure the seller makes, not one
-the room makes for them.
+one rather than winding the number down, because a restore is itself something
+that happened. The history is the owner's alone: that a document was re-issued on
+the fourteenth is a disclosure the seller makes, not one the room makes for them.
 
 ![The history of a document](docs/screenshots/versions.png)
 
+**A folder is one screen, and only the rows move inside it.** The toolbar, the
+trail, the column headings and the pager hold their place, so the control that
+turns the page is never at the bottom of the page it turns. A table too wide for
+the screen slides inside that same box, with a floor of 540px because below it
+the columns crush instead of reflowing.
+
 **One breakpoint carries the responsive work.** Tailwind's own scale, unchanged,
-and `sm` at 640px does nearly all of it: below it the toolbar breaks in two so the
-folder name keeps a line to be read on, the buttons that act on a room drop their
-labels, and the padding steps down once. A folder is one screen tall and only the
-rows move inside it: the toolbar, the trail, the column headings and the pager
-hold their place, so the control that turns the page is never at the bottom of
-the page it turns. A table too wide for the screen slides inside the same box
-rather than taking the page with it, with a floor of 540px because below that the
-columns crush instead of reflowing. The one other use of
-`md` drops the size column from search results, where the name needs the room.
-Checked at 390, 768, 1024 and 1440: nothing overflows the page at any of them.
-The rules are written down in the design system.
+and `sm` at 640px does nearly all of it: below it the toolbar breaks in two so
+the folder name keeps a line to be read on, the buttons that act on a room drop
+their labels, and the padding steps down once. The one other use of `md` drops
+the size column from search results, where the name needs the room. Checked at
+390, 768, 1024 and 1440. The rules are in the design system.
 
 **A node you may not see answers 404, not 403.** A 403 would confirm that a
 folder with that id exists, which is exactly what a shared out data room must not
@@ -408,18 +395,14 @@ someone was invited into, because those totals describe parts they cannot see.
   [How it scales](#how-it-scales).
 - **Holding one document back from a shared folder.** A share reaches everything
   inside it and there is no exclusion anywhere in the model, which is why there
-  is nothing to forget. It costs something real: in every legal folder there is
-  one document that goes to the principal and not to the bidder, and today the
-  answer is to move it somewhere the bidder cannot reach. A deny rule would buy
-  that back and cost the property that makes the rest of this defensible.
+  is nothing to forget. Today the answer is to move that document somewhere the
+  bidder cannot reach. A deny rule would buy it back and cost the property that
+  makes the rest of this defensible.
 - **Proving that an invited address belongs to whoever signs in with it.** An
-  invitation is claimed on first sign-in by matching the email on the account,
-  and email confirmation is deliberately off so the demo needs no mailbox.
-  Together those mean somebody who knows an invited address could sign up as it.
-  The answer is not a stricter check on the token, whose `email_verified` claim
-  the account itself can write: the invitation has to carry its own secret, and
-  the link in the email is what claims it. This is the first thing on the
-  roadmap and the reason the second thing waits for it.
+  invitation is claimed by matching the email on the account, and email
+  confirmation is off so the demo needs no mailbox: somebody who knows an invited
+  address could sign up as it. The fix is an invitation that carries its own
+  secret, claimed by the link in the email. It is first on the roadmap.
 - **Storybook, an e2e suite, Docker.** The style reference in
   `docs/design/style-reference.html` is the component gallery, and the smoke
   script covers the paths an e2e suite would.
@@ -427,22 +410,13 @@ someone was invited into, because those totals describe parts they cannot see.
 Everything else I would build, in the order a deal asks for it and with what each
 one unblocks, is in [docs/roadmap.md](docs/roadmap.md).
 
-Things a reviewer will notice:
-
-- `npm audit` reports a high severity advisory in `deepmerge-ts`, reached through
-  `prisma` and `@prisma/config`. It survives `npm audit --omit=dev`, because
-  `@prisma/client` declares `prisma` as a peer dependency and npm installs peers,
-  so the CLI is in a production install too. The vulnerable code is only loaded
-  when that CLI runs, which the server never does, and `npm audit fix --force`
-  downgrades Prisma across a major version. So it stays, and it stays written
-  down here rather than in a comment nobody reads.
-- Email confirmation is off in Supabase Auth, deliberately, so that the demo
-  accounts and any account a reviewer creates work immediately.
-- The root `package.json` carries one optional dependency,
-  `@rolldown/binding-linux-x64-gnu`. The lockfile is written on Windows, and npm
-  records only the platform it resolved on, so vitest had no binding to load on
-  the Linux runner. Naming it explicitly puts both platforms in the lockfile and
-  keeps `npm ci` in CI.
+Two things that look wrong and are not. `npm audit` reports a high severity
+advisory in `deepmerge-ts`, reached through the Prisma CLI, which the server
+never runs; the fix downgrades Prisma across a major version, so it stays and it
+stays written down. And the root `package.json` names one optional dependency,
+`@rolldown/binding-linux-x64-gnu`, because a lockfile written on Windows records
+only the platform it resolved on and the Linux runner then had no binding to
+load.
 
 ## Documentation
 

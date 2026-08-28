@@ -10,11 +10,7 @@ interface Props {
   onClick: () => void
 }
 
-/**
- * The trail says where you are; this says how to leave. Going up one level is
- * the move a reader makes over and over walking a tree, and aiming at the second
- * to last crumb every time is a smaller target for the same thing.
- */
+/** Up one level, which the trail can also do but only through a smaller target. */
 export function UpButton({ to, onClick }: Props) {
   const t = useT()
 

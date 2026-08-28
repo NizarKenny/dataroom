@@ -6,10 +6,8 @@ import { useT } from '@/lib/i18n'
 import { Lock, LockOpen } from 'lucide-react'
 
 /**
- * The switch between the two things a header can be. Closed, the headers sort
- * the list; open, they come loose and can be dragged into another order. It
- * starts closed because sorting is what people do every day and rearranging is
- * what they do once.
+ * Which of the two things a header is. Closed, headers sort; open, they come
+ * loose and can be dragged. Closed by default: sorting is the daily job.
  */
 export function LockButton() {
   const columns = useColumns()

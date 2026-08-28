@@ -131,10 +131,9 @@ export function MoveDialog({ row, roomId, currentFolderId, onOpenChange, onMove 
                     await onMove(row, chosen, into?.name ?? '')
                     onOpenChange(false)
                   } catch (problem) {
-                    // A name already taken in the destination is the ordinary
-                    // reason this fails, and it is the reader's to fix, so it
-                    // belongs next to the list rather than in a toast that
-                    // outlives the dialog.
+                    // Usually a name already taken in the destination, which is
+                    // the reader's to fix: it belongs by the list, not in a
+                    // toast that outlives the dialog.
                     setError(problem instanceof Error ? problem.message : t(d.common.didNotWork))
                   } finally {
                     setBusy(false)
