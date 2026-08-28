@@ -9,6 +9,7 @@ import {
 import { ColumnsMenu } from '@/components/ColumnsMenu'
 import type { AccessBadge, FileRow, FolderRow } from '@/lib/api'
 import { COLUMNS, useColumns, type ColumnId } from '@/lib/columns'
+import type { Sort, SortBy } from '@/lib/sort'
 import { d } from '@/lib/dictionary'
 import { useT } from '@/lib/i18n'
 import { formatBytes, formatWhen } from '@/lib/format'
@@ -18,6 +19,8 @@ import {
   File as FileIcon,
   FileSpreadsheet,
   FileText,
+  ChevronDown,
+  ChevronUp,
   Folder,
   History,
   Image,
@@ -42,11 +45,13 @@ export interface RowActions {
 interface Props {
   rows: Row[]
   onOpen: (row: Row) => void
+  sort: Sort
+  onSort: (by: SortBy) => void
   /** Left out for anyone who is only reading, which also hides the whole column. */
   actions?: RowActions
 }
 
-export function FileTable({ rows, onOpen, actions }: Props) {
+export function FileTable({ rows, onOpen, sort, onSort, actions }: Props) {
   const t = useT()
   const columns = useColumns()
   const [dragging, setDragging] = useState<ColumnId | null>(null)
@@ -71,18 +76,25 @@ export function FileTable({ rows, onOpen, actions }: Props) {
       <table className="w-full min-w-[540px] border-collapse">
         <thead>
           <tr>
-            <Th className="w-full">{t(d.common.name)}</Th>
+            <Th className="w-full">
+              {/* Not draggable, so it does not wobble, but it stops sorting
+                  with the others: two modes means two, not one and a half. */}
+              <Label id="name" sort={sort} onSort={onSort} unlocked={columns.unlocked}>
+                {t(d.common.name)}
+              </Label>
+            </Th>
 
             {shown.map((id) => (
               <Th
                 key={id}
-                draggable
+                draggable={columns.unlocked}
                 onDragStart={() => setDragging(id)}
                 onDragEnd={() => {
                   setDragging(null)
                   setOver(null)
                 }}
                 onDragOver={(event) => {
+                  if (!columns.unlocked) return
                   event.preventDefault()
                   setOver(id)
                 }}
@@ -93,12 +105,21 @@ export function FileTable({ rows, onOpen, actions }: Props) {
                 // and a column of "just now" over "22 minutes ago" then drifts
                 // by the difference between them on every row.
                 className={cn(
-                  'min-w-[104px] cursor-grab text-center select-none',
+                  'min-w-[104px] text-center select-none',
+                  columns.unlocked && 'cursor-grab',
                   dragging === id && 'opacity-45',
                   over === id && dragging !== id && 'bg-primary-wash text-primary-active',
                 )}
               >
-                {t(COLUMNS.find((column) => column.id === id)!.label)}
+                <Label
+                  id={id === 'access' ? null : id}
+                  sort={sort}
+                  onSort={onSort}
+                  unlocked={columns.unlocked}
+                  wobbles
+                >
+                  {t(COLUMNS.find((column) => column.id === id)!.label)}
+                </Label>
               </Th>
             ))}
 
@@ -162,6 +183,56 @@ export function FileTable({ rows, onOpen, actions }: Props) {
         </tbody>
       </table>
     </div>
+  )
+}
+
+/**
+ * A header does one job at a time. With the lock closed it sorts; with the lock
+ * open it is a handle for dragging, and a handle that also fires on click is a
+ * handle that sorts the table every time somebody grabs it.
+ */
+function Label({
+  id,
+  sort,
+  onSort,
+  unlocked,
+  wobbles = false,
+  children,
+}: {
+  id: SortBy | null
+  sort: Sort
+  onSort: (by: SortBy) => void
+  unlocked: boolean
+  /** Only the columns that can actually be dragged move. Name cannot. */
+  wobbles?: boolean
+  children: React.ReactNode
+}) {
+  if (unlocked || id === null) {
+    return (
+      <span className={cn('inline-flex items-center gap-1', unlocked && wobbles && 'wobbling')}>
+        {children}
+      </span>
+    )
+  }
+
+  const on = sort.by === id
+  return (
+    <button
+      onClick={() => onSort(id)}
+      aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={cn(
+        'inline-flex items-center gap-1 uppercase transition-colors hover:text-ink-muted',
+        on && 'text-ink-secondary',
+      )}
+    >
+      {children}
+      {on &&
+        (sort.dir === 'asc' ? (
+          <ChevronUp className="size-3" />
+        ) : (
+          <ChevronDown className="size-3" />
+        ))}
+    </button>
   )
 }
 

@@ -53,12 +53,21 @@ export const linkRoutes: FastifyPluginAsyncZod = async (app) => {
         querystring: z.object({
           page: z.coerce.number().int().min(1).default(1),
           modified: z.enum(['any', 'today', 'week', 'month', 'year']).default('any'),
+          sort: z.enum(['name', 'size', 'modified']).default('name'),
+          dir: z.enum(['asc', 'desc']).default('asc'),
         }),
       },
     },
     async (request) => {
       const { viewer } = await openLink(request.params.token)
-      return folderView(viewer, request.params.id, request.query.page, request.query.modified)
+      return folderView(
+        viewer,
+        request.params.id,
+        request.query.page,
+        request.query.modified,
+        request.query.sort,
+        request.query.dir,
+      )
     },
   )
 

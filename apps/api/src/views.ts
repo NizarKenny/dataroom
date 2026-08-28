@@ -16,6 +16,23 @@ import {
 /** Rows on one page of a listing, folders and files counted together. */
 export const PAGE_ROWS = 50
 
+/** What a listing is ordered by, and which way. */
+export type SortBy = 'name' | 'size' | 'modified'
+export type SortDir = 'asc' | 'desc'
+
+/**
+ * Folders keep their block at the top whatever the sort, because a folder and a
+ * file are different kinds of thing and interleaving them by size would put an
+ * empty cell between two numbers. A folder has no size, so when that is what is
+ * being sorted the folders fall back to their names.
+ */
+function ordering(by: SortBy, dir: SortDir) {
+  return {
+    folders: by === 'modified' ? { updatedAt: dir } : { name: by === 'size' ? 'asc' : dir },
+    files: by === 'name' ? { name: dir } : by === 'size' ? { sizeBytes: dir } : { updatedAt: dir },
+  } as const
+}
+
 /** How far back a listing is willing to look, as the filter offers it. */
 export type Modified = 'any' | 'today' | 'week' | 'month' | 'year'
 
@@ -51,6 +68,8 @@ export async function folderView(
   folderId: string,
   page = 1,
   modified: Modified = 'any',
+  sort: SortBy = 'name',
+  dir: SortDir = 'asc',
 ) {
   const { folder, room, grant } = await openFolder(viewer, folderId)
 
@@ -78,12 +97,14 @@ export async function folderView(
   // whole of it.
   const folderSlice = Math.max(0, Math.min(PAGE_ROWS, folderCount - from))
 
+  const order = ordering(sort, dir)
+
   const [folders, files, breadcrumbs] = await Promise.all([
     folderSlice === 0
       ? Promise.resolve([])
       : prisma.folder.findMany({
           where: { parentId: folder.id, ...recent },
-          orderBy: { name: 'asc' },
+          orderBy: order.folders,
           skip: from,
           take: folderSlice,
         }),
@@ -91,7 +112,7 @@ export async function folderView(
       ? Promise.resolve([])
       : prisma.file.findMany({
           where: { folderId: folder.id, ...recent },
-          orderBy: { name: 'asc' },
+          orderBy: order.files,
           skip: Math.max(0, from - folderCount),
           take: PAGE_ROWS - folderSlice,
         }),
@@ -113,7 +134,7 @@ export async function folderView(
     },
     breadcrumbs,
     // Said even when there is one page, so the browser never has to guess.
-    page: { number: current, pages, total, size: PAGE_ROWS, modified },
+    page: { number: current, pages, total, size: PAGE_ROWS, modified, sort, dir },
     folders: folders.map((child) => folderRow(child, shares)),
     files: files.map((file) => fileRow(file, folder, shares)),
   }

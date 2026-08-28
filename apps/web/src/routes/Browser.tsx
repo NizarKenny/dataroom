@@ -5,6 +5,7 @@ import { FilePreview } from '@/components/FilePreview'
 import { FileTable, type Row } from '@/components/FileTable'
 import { MoveDialog } from '@/components/MoveDialog'
 import { PromptDialog } from '@/components/PromptDialog'
+import { LockButton } from '@/components/LockButton'
 import { ModifiedFilter } from '@/components/ModifiedFilter'
 import { Pager } from '@/components/Pager'
 import { ReaderBanner } from '@/components/ReaderBanner'
@@ -17,6 +18,7 @@ import { VersionsDialog } from '@/components/VersionsDialog'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError, type Modified } from '@/lib/api'
+import { DEFAULT_SORT, isDefaultSort, nextSort, type Sort, type SortBy } from '@/lib/sort'
 import { useDebounced } from '@/lib/useDebounced'
 import { d } from '@/lib/dictionary'
 import { useT } from '@/lib/i18n'
@@ -40,10 +42,14 @@ export function Browser() {
   const [params, setParams] = useSearchParams()
   const page = Math.max(1, Number(params.get('page')) || 1)
   const modified = (params.get('modified') ?? 'any') as Modified
+  const sort: Sort = {
+    by: (params.get('sort') ?? DEFAULT_SORT.by) as SortBy,
+    dir: params.get('dir') === 'desc' ? 'desc' : 'asc',
+  }
 
   const view = useQuery({
-    queryKey: ['folder', folderId, page, modified],
-    queryFn: () => api.folders.get(folderId, page, modified),
+    queryKey: ['folder', folderId, page, modified, sort.by, sort.dir],
+    queryFn: () => api.folders.get(folderId, page, modified, sort),
     placeholderData: (previous) => previous,
   })
 
@@ -53,8 +59,9 @@ export function Browser() {
         const next = new URLSearchParams(previous)
         if (value === fallback) next.delete(key)
         else next.set(key, value)
-        // A narrower list has fewer pages, and page seven of four is nothing.
-        if (key === 'modified') next.delete('page')
+        // A narrower or reordered list has fewer pages, or different ones,
+        // and page seven of four is nothing.
+        if (key !== 'page') next.delete('page')
         return next
       },
       { replace: true },
@@ -164,6 +171,25 @@ export function Browser() {
   const parent = breadcrumbs[breadcrumbs.length - 2] ?? null
   const searching = query.trim().length > 0
   const filtered = modified !== 'any'
+
+  function reorder(by: SortBy) {
+    const next = nextSort(sort, by)
+    setParams(
+      (previous) => {
+        const params = new URLSearchParams(previous)
+        params.delete('page')
+        if (isDefaultSort(next)) {
+          params.delete('sort')
+          params.delete('dir')
+        } else {
+          params.set('sort', next.by)
+          params.set('dir', next.dir)
+        }
+        return params
+      },
+      { replace: true },
+    )
+  }
 
   const rows: Row[] = [
     ...folders.map((entry) => ({ kind: 'folder' as const, ...entry })),
@@ -284,14 +310,17 @@ export function Browser() {
             />
           ) : (
             <>
-              {/* At the top of a room the trail would only repeat the heading. */}
-              {breadcrumbs.length > 1 && (
-                <Breadcrumbs
-                  trail={breadcrumbs}
-                  onNavigate={(id) => navigate(`/f/${id}`)}
-                  granted={!owner}
-                />
-              )}
+              {/* At the top of a room the trail would only repeat the heading,
+                  but the row stays: it is where the lock over the columns
+                  lives, and a control that comes and goes with the depth of a
+                  folder is a control nobody finds twice. */}
+              <Breadcrumbs
+                trail={breadcrumbs.length > 1 ? breadcrumbs : []}
+                onNavigate={(id) => navigate(`/f/${id}`)}
+                granted={!owner}
+              >
+                <LockButton />
+              </Breadcrumbs>
 
               {!owner && breadcrumbs[0] && (
                 <ReaderBanner grantedAt={breadcrumbs[0].name} through="invitation" />
@@ -347,6 +376,8 @@ export function Browser() {
                 <FileTable
                   rows={rows}
                   onOpen={open}
+                  sort={sort}
+                  onSort={reorder}
                   actions={
                     owner
                       ? {

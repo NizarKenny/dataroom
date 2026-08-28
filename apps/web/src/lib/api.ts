@@ -1,3 +1,4 @@
+import { DEFAULT_SORT } from './sort'
 import { supabase } from './supabase'
 
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8787'
@@ -204,8 +205,10 @@ export const api = {
   },
 
   folders: {
-    get: (id: string, page = 1, modified: Modified = 'any') =>
-      request<FolderView>(`/folders/${id}?page=${page}&modified=${modified}`),
+    get: (id: string, page = 1, modified: Modified = 'any', sort = DEFAULT_SORT) =>
+      request<FolderView>(
+        `/folders/${id}?page=${page}&modified=${modified}&sort=${sort.by}&dir=${sort.dir}`,
+      ),
     manifest: (id: string) => request<Manifest>(`/folders/${id}/manifest`),
     create: (parentId: string, name: string) =>
       request<FolderRow>('/folders', { method: 'POST', body: { parentId, name } }),
@@ -260,10 +263,17 @@ export const api = {
         folderId: string | null
         file: { id: string; name: string; sizeBytes: number; mimeType: string } | null
       }>(`/links/${token}`, { signed: false }),
-    folder: (token: string, id: string, page = 1, modified: Modified = 'any') =>
-      request<FolderView>(`/links/${token}/folders/${id}?page=${page}&modified=${modified}`, {
-        signed: false,
-      }),
+    folder: (
+      token: string,
+      id: string,
+      page = 1,
+      modified: Modified = 'any',
+      sort = DEFAULT_SORT,
+    ) =>
+      request<FolderView>(
+        `/links/${token}/folders/${id}?page=${page}&modified=${modified}&sort=${sort.by}&dir=${sort.dir}`,
+        { signed: false },
+      ),
     download: (token: string, id: string, disposition: 'inline' | 'attachment' = 'inline') =>
       request<DownloadLink>(`/links/${token}/files/${id}/download-url?disposition=${disposition}`, {
         signed: false,

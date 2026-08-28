@@ -252,6 +252,29 @@ async function main() {
   const unfiltered = await asOwner('GET', `/folders/${paged.body.id}`)
   check('with the filter off they are all back', unfiltered.body?.page?.total === 52, unfiltered.body?.page)
 
+  // Sorting has to happen in the database: the biggest file on this page is not
+  // the biggest file in the folder, and a pager makes that difference visible.
+  const byNameDown = await asOwner('GET', `/folders/${paged.body.id}?sort=name&dir=desc`)
+  check('a listing sorts by name backwards', byNameDown.body?.folders?.[0]?.name === 'Box 52', byNameDown.body?.folders?.[0])
+
+  const bigFirst = await asOwner('GET', `/folders/${q4.body.id}?sort=size&dir=desc`)
+  const smallFirst = await asOwner('GET', `/folders/${q4.body.id}?sort=size&dir=asc`)
+  check('and by size, biggest first', bigFirst.body?.files?.[0]?.sizeBytes >= bigFirst.body?.files?.at(-1)?.sizeBytes, bigFirst.body?.files)
+  check('and smallest first the other way', smallFirst.body?.files?.[0]?.sizeBytes <= smallFirst.body?.files?.at(-1)?.sizeBytes, smallFirst.body?.files)
+  check('which is the reverse of the same list', smallFirst.body?.files?.[0]?.id === bigFirst.body?.files?.at(-1)?.id, {
+    small: smallFirst.body?.files?.[0]?.name,
+    big: bigFirst.body?.files?.at(-1)?.name,
+  })
+
+  // Folders have no size, so they hold their block and fall back to their names.
+  const mixed = await asOwner('GET', `/folders/${rootId}?sort=size&dir=desc`)
+  const folderNames = (mixed.body?.folders ?? []).map((folder: { name: string }) => folder.name)
+  check(
+    'folders fall back to their names when the sort is by size',
+    folderNames.join() === [...folderNames].sort().join(),
+    folderNames,
+  )
+
   console.log('\ndownload')
   const download = await asOwner('GET', `/files/${recorded.body.id}/download-url`)
   const fetched = await fetch(download.body.url)

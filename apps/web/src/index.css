@@ -177,3 +177,28 @@
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Unlocked headers wobble, the way an icon does when a home screen is being
+   rearranged. It says "these are loose now" without a word of explanation, and
+   it stops the moment the lock closes. */
+@keyframes wobble {
+  0%,
+  100% {
+    transform: rotate(-0.7deg);
+  }
+  50% {
+    transform: rotate(0.7deg);
+  }
+}
+
+@utility wobbling {
+  animation: wobble 0.34s ease-in-out infinite;
+}
+
+/* Somebody who has asked for less motion still has to be told the headers are
+   loose, so they keep the dashed edge and lose only the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .wobbling {
+    animation: none;
+  }
+}

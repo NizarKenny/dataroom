@@ -59,6 +59,8 @@ export const d = {
     actionsFor: (name: string) => p(`Actions for ${name}`, `Дії з «${name}»`),
     moveTo: p('Move to', 'Перемістити'),
     history: p('History', 'Історія'),
+    unlock: p('Unlock the columns to rearrange them', 'Відкрити колонки, щоб їх переставити'),
+    lock: p('Lock the columns and sort by them', 'Закрити колонки й сортувати за ними'),
   },
 
   pager: {

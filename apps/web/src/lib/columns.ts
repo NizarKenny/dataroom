@@ -33,10 +33,12 @@ export function orderAfterDrop(order: ColumnId[], id: ColumnId, target: ColumnId
 export interface Layout {
   order: ColumnId[]
   hidden: ColumnId[]
+  /** Locked, the headers sort. Unlocked, they are handles. Not both at once. */
+  unlocked: boolean
 }
 
 const KEY = 'dataroom.columns'
-const DEFAULT: Layout = { order: ['access', 'size', 'modified'], hidden: [] }
+const DEFAULT: Layout = { order: ['access', 'size', 'modified'], hidden: [], unlocked: false }
 
 const known = new Set(COLUMNS.map((column) => column.id))
 const isColumn = (value: unknown): value is ColumnId =>
@@ -57,6 +59,10 @@ function read(): Layout {
     return {
       order: [...order, ...DEFAULT.order.filter((id) => !order.includes(id))],
       hidden,
+      // Deliberately not remembered: rearranging is something you do once and
+      // then stop doing, and a table that is still wobbling tomorrow is a table
+      // that will get rearranged by accident.
+      unlocked: false,
     }
   } catch {
     return DEFAULT
@@ -84,6 +90,12 @@ export function useColumns() {
 
   return {
     layout: current,
+    unlocked: current.unlocked,
+
+    toggleLock() {
+      write({ ...current, unlocked: !current.unlocked })
+    },
+
     /** In the reader's order, with the switched off ones left out. */
     visible: current.order.filter((id) => !current.hidden.includes(id)),
 
@@ -113,7 +125,7 @@ export function useColumns() {
 
     reset() {
       localStorage.removeItem(KEY)
-      write(DEFAULT)
+      write({ ...DEFAULT, unlocked: current.unlocked })
     },
 
     isDefault: current.hidden.length === 0 && current.order.join() === DEFAULT.order.join(),

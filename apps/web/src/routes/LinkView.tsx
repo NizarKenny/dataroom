@@ -1,5 +1,6 @@
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { LanguageSwitch } from '@/components/LanguageSwitch'
+import { LockButton } from '@/components/LockButton'
 import { ModifiedFilter } from '@/components/ModifiedFilter'
 import { Pager } from '@/components/Pager'
 import { SearchField } from '@/components/SearchField'
@@ -11,6 +12,7 @@ import { ReaderBanner } from '@/components/ReaderBanner'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, ApiError, type Modified } from '@/lib/api'
+import { DEFAULT_SORT, isDefaultSort, nextSort, type Sort, type SortBy } from '@/lib/sort'
 import { useDebounced } from '@/lib/useDebounced'
 import { d } from '@/lib/dictionary'
 import { useT } from '@/lib/i18n'
@@ -44,10 +46,14 @@ export function LinkView() {
   const [params, setParams] = useSearchParams()
   const page = Math.max(1, Number(params.get('page')) || 1)
   const modified = (params.get('modified') ?? 'any') as Modified
+  const sort: Sort = {
+    by: (params.get('sort') ?? DEFAULT_SORT.by) as SortBy,
+    dir: params.get('dir') === 'desc' ? 'desc' : 'asc',
+  }
 
   const view = useQuery({
-    queryKey: ['link-folder', token, shownFolder, page, modified],
-    queryFn: () => api.links.folder(token, shownFolder!, page, modified),
+    queryKey: ['link-folder', token, shownFolder, page, modified, sort.by, sort.dir],
+    queryFn: () => api.links.folder(token, shownFolder!, page, modified, sort),
     enabled: shownFolder !== null,
     placeholderData: (previous) => previous,
   })
@@ -58,7 +64,7 @@ export function LinkView() {
         const next = new URLSearchParams(previous)
         if (value === fallback) next.delete(key)
         else next.set(key, value)
-        if (key === 'modified') next.delete('page')
+        if (key !== 'page') next.delete('page')
         return next
       },
       { replace: true },
@@ -74,6 +80,25 @@ export function LinkView() {
     placeholderData: (previous) => previous,
   })
   const searching = query.trim().length > 0
+
+  function reorder(by: SortBy) {
+    const next = nextSort(sort, by)
+    setParams(
+      (previous) => {
+        const params = new URLSearchParams(previous)
+        params.delete('page')
+        if (isDefaultSort(next)) {
+          params.delete('sort')
+          params.delete('dir')
+        } else {
+          params.set('sort', next.by)
+          params.set('dir', next.dir)
+        }
+        return params
+      },
+      { replace: true },
+    )
+  }
 
   if (opened.isPending) {
     return (
@@ -205,13 +230,13 @@ export function LinkView() {
               <ReaderBanner grantedAt={view.data.breadcrumbs[0].name} through="link" />
             )}
 
-            {view.data.breadcrumbs.length > 1 && (
-              <Breadcrumbs
-                trail={view.data.breadcrumbs}
-                onNavigate={(id) => navigate(`/l/${token}/f/${id}`)}
-                granted
-              />
-            )}
+            <Breadcrumbs
+              trail={view.data.breadcrumbs.length > 1 ? view.data.breadcrumbs : []}
+              onNavigate={(id) => navigate(`/l/${token}/f/${id}`)}
+              granted
+            >
+              <LockButton />
+            </Breadcrumbs>
 
             {view.data.folders.length + view.data.files.length === 0 ? (
               <div className="px-6 py-13 text-center">
@@ -222,6 +247,8 @@ export function LinkView() {
               </div>
             ) : (
               <FileTable
+                sort={sort}
+                onSort={reorder}
                 rows={[
                   ...view.data.folders.map((entry) => ({ kind: 'folder' as const, ...entry })),
                   ...view.data.files.map((entry) => ({ kind: 'file' as const, ...entry })),

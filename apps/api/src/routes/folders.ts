@@ -13,6 +13,8 @@ const folderId = z.object({ id: z.uuid() })
 const listing = z.object({
   page: z.coerce.number().int().min(1).default(1),
   modified: z.enum(['any', 'today', 'week', 'month', 'year']).default('any'),
+  sort: z.enum(['name', 'size', 'modified']).default('name'),
+  dir: z.enum(['asc', 'desc']).default('asc'),
 })
 
 export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -20,7 +22,14 @@ export const folderRoutes: FastifyPluginAsyncZod = async (app) => {
     '/folders/:id',
     { schema: { params: folderId, querystring: listing } },
     async (request) =>
-      folderView(viewerOf(request), request.params.id, request.query.page, request.query.modified),
+      folderView(
+        viewerOf(request),
+        request.params.id,
+        request.query.page,
+        request.query.modified,
+        request.query.sort,
+        request.query.dir,
+      ),
   )
 
   app.post(

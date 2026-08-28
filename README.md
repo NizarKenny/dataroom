@@ -38,8 +38,11 @@ Four things worth opening:
    were given.
 5. Open `05 Data pack`, which holds more rows than one page. The pager shows
    three numbers and two arrows, and the arrows scroll the numbers rather than
-   turning the page. Drag a column header onto another to swap them, or switch
-   one off from the icon at the end of the header row: it is remembered.
+   turning the page. Click a column heading to sort by it: the first click asks
+   what that column is usually asked, the second turns it round, the third puts
+   the list back. Then open the lock at the end of the breadcrumb row: the
+   headings come loose and can be dragged into another order, and stop sorting
+   while they are loose. Both are remembered.
 
 ![Rows that inherit their access](docs/screenshots/inherited.png)
 
@@ -238,6 +241,10 @@ move and multiplies the row count for a tree that is mostly read.
 The price of the choice is that moving a folder rewrites the paths of its
 subtree. That is one statement, and moves are rare next to renames, which cost
 nothing because paths are built from ids.
+
+Sorting happens in the database rather than on the page that came back. The
+biggest file on this page is not the biggest file in the folder, and a pager is
+what makes the difference between those two visible.
 
 A listing is one page of fifty rows, folders first and then files, both by name,
 and the count that feeds the pager carries the same filter as the rows so it can
