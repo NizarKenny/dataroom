@@ -19,7 +19,7 @@ granted on a folder reaches everything inside it and nothing beside it.
 | `demo@dataroom.dev` | `dataroom-demo-2026` | owns Project Atlas |
 | `reader@dataroom.dev` | `dataroom-demo-2026` | invited to `03 Legal` only |
 
-Five things worth opening:
+Six things worth opening:
 
 1. Sign in as the reader. The room opens at `03 Legal`, the folder they were
    given, and the breadcrumbs do not name the folders above it. The other four
@@ -47,6 +47,10 @@ Five things worth opening:
    into another order by mouse or by finger, and stop sorting while they are
    loose. The arrangement is remembered; the sort rides in the URL, so a sorted
    folder can be sent to somebody as it looks.
+6. Set Modified in the toolbar to the last seven days. The index was filled over
+   two months, the way one is on a real deal, so every window in that list cuts
+   the room differently. The count behind the pager is cut with it, rather than
+   left offering pages of rows that are no longer drawn.
 
 The interface is in English and Ukrainian, switched in the top bar.
 
