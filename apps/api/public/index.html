@@ -1,5 +1,96 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Data Room API</title>
-<p>This host serves the Data Room API. The application is at
-<a href="https://nizar-dataroom.vercel.app">nizar-dataroom.vercel.app</a>.</p>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --canvas: #f6f5f4;
+  --surface: #ffffff;
+  --sunken: #efeeec;
+  --hairline: #e6e6e6;
+  --ink: #191817;
+  --ink-muted: #615d59;
+  --ink-faint: #6f6a64;
+  --primary: #0075de;
+  --primary-active: #005bab;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #191919; --surface: #262626; --sunken: #323232; --hairline: #3d3d3d;
+    --ink: #ededed; --ink-muted: #aca69f; --ink-faint: #948e87;
+    --primary: #2f8fef; --primary-active: #5aa9f5;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--canvas); color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 620px; margin: 0 auto; padding: 72px 24px 88px; }
+h1 { font-size: 32px; line-height: 1.15; letter-spacing: -.6px; margin: 0; }
+.lede { color: var(--ink-muted); margin: 10px 0 0; }
+.card {
+  margin-top: 28px; background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: 12px; overflow: hidden;
+}
+.row { display: flex; align-items: baseline; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--hairline); }
+.row:last-child { border-bottom: 0; }
+.verb {
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink-faint);
+  min-width: 46px; letter-spacing: .3px;
+}
+.path { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.what { margin-left: auto; font-size: 13px; color: var(--ink-muted); text-align: right; }
+.note { margin: 20px 0 0; font-size: 14px; color: var(--ink-muted); }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.links a {
+  text-decoration: none; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--hairline); border-radius: 8px; padding: 9px 14px; font-size: 14px;
+}
+.links a:hover { border-color: var(--primary); color: var(--primary-active); }
+.links a.first { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 500; }
+code { font-family: var(--mono); font-size: 13px; background: var(--sunken); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Data Room API</h1>
+  <p class="lede">This host answers the application, not people. Nothing here is a page:
+    everything under it returns JSON, and almost all of it wants a token first.</p>
+
+  <div class="card">
+    <div class="row">
+      <span class="verb">GET</span><span class="path">/health</span>
+      <span class="what">Open. Says <code>ok</code></span>
+    </div>
+    <div class="row">
+      <span class="verb">GET</span><span class="path">/links/:token</span>
+      <span class="what">Open. The token is the credential</span>
+    </div>
+    <div class="row">
+      <span class="verb">*</span><span class="path">/rooms /folders /files /shares</span>
+      <span class="what">Needs a signed in account</span>
+    </div>
+  </div>
+
+  <p class="note">A node you are not allowed to see answers 404 rather than 403, deliberately:
+    a 403 would confirm that a folder with that id is real.</p>
+
+  <div class="links">
+    <a class="first" href="https://nizar-dataroom.vercel.app">Open the application</a>
+    <a href="https://github.com/NizarKenny/dataroom/blob/main/docs/api.md">API reference</a>
+    <a href="https://nizarkenny.github.io/dataroom/">Documentation</a>
+    <a href="https://github.com/NizarKenny/dataroom">Source</a>
+  </div>
+
+</div>
+</body>
+</html>
