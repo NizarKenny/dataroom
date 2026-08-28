@@ -12,9 +12,11 @@ Three kinds of route, and the difference is the whole design.
 
 Every route that reaches a node in the tree goes through the same access
 function, and the public link routes go through it too, so a link holder and an
-invited reader cannot drift apart. Two routes answer a different question and so
-do not use it: `GET /rooms` asks which rooms exist for this person, and
-`DELETE /shares/:id` only has to know who owns the room.
+invited reader cannot drift apart. Four routes answer a different question and so
+do not use it: `GET /rooms` asks which rooms exist for this person,
+`DELETE /shares/:id` only has to know who owns the room, and the two search
+routes ask what the whole room holds rather than whether one node is reachable,
+so they go through the same rules the other way round.
 
 ## Rooms
 
@@ -32,7 +34,7 @@ do not use it: `GET /rooms` asks which rooms exist for this person, and
 
 | | | |
 | --- | --- | --- |
-| `GET` | `/folders/:id` | `?page=&modified=&sort=&dir=` where `modified` is `any`, `today`, `week`, `month` or `year`, `sort` is `name`, `size` or `modified`, and `dir` is `asc` or `desc`. Folders keep the top of the listing whatever the sort, and fall back to their names when it is by size, because a folder has no size. The listing: the folder, its breadcrumbs, one page of its subfolders and files, and for an owner what reaches each row. Fifty rows to a page, folders first and then files, both by name |
+| `GET` | `/folders/:id` | `?page=&modified=&sort=&dir=` where `modified` is `any`, `today`, `week`, `month` or `year`, `sort` is `name`, `size` or `modified`, and `dir` is `asc` or `desc`. Folders keep the top of the listing whatever the sort, and fall back to their names when it is by size, because a folder has no size. The listing: the folder, its breadcrumbs, one page of its subfolders and files, and for an owner what reaches each row. Fifty rows to a page, folders first and then files, by name unless a sort is asked for |
 | `POST` | `/folders` | `{ parentId, name }` |
 | `PATCH` | `/folders/:id` | `{ name?, parentId? }`. A rename touches one row. A move rewrites the subtree's paths and the shares pointing into it, in one transaction behind a per room advisory lock |
 | `DELETE` | `/folders/:id` | Revokes the shares inside first, so a link says it was switched off rather than answering 404 |
@@ -58,7 +60,7 @@ Uploads go in two steps, and the bytes never pass through this API.
 | | | |
 | --- | --- | --- |
 | `GET` | `/shares?resourceType=&resourceId=` | Everything that reaches this node, each marked inherited or not. Owner only |
-| `POST` | `/shares` | `{ resourceType, resourceId, mode, email? }`. `mode` is `public_link` or `user`. Inviting the same person twice returns the existing share rather than an error |
+| `POST` | `/shares` | `{ resourceType, resourceId, mode, email? }`. `mode` is `public_link` or `user`. Asking twice for the same thing returns the existing share with 200 rather than a second one: one live link per resource, and one invitation per person |
 | `DELETE` | `/shares/:id` | Revokes. The row stays, so a dead link can say so |
 
 `resourceType` is `data_room`, `folder` or `file`.
@@ -85,7 +87,7 @@ Uploads go in two steps, and the bytes never pass through this API.
 | `share_revoked` | 403 | The link was switched off. Only ever said to someone holding the token |
 | `not_found` | 404 | The node does not exist, **or** it is not yours to see. Deliberately the same answer: a 403 would confirm that a folder with that id is real |
 | `bad_request` | 400 | A name with a separator, a file over the limit, a folder moved into itself |
-| `name_taken` | 409 | A sibling already has that name. The unique index is what decides, not a check beforehand |
+| `name_taken` | 409 | A sibling already has that name. The unique index is what decides, not a check beforehand. `detail.free` carries a name that is not taken, so the caller can offer it |
 | `version_raced` | 409 | The file gained a version between signing the upload and recording it, which means two uploads of it overlapped |
 | `internal` | 500 | Anything unrecognised. The message never says what, because the caller learns nothing useful from it and an attacker would |
 

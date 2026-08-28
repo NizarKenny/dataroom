@@ -19,10 +19,10 @@ granted on a folder reaches everything inside it and nothing beside it.
 | `demo@dataroom.dev` | `dataroom-demo-2026` | owns Project Atlas |
 | `reader@dataroom.dev` | `dataroom-demo-2026` | invited to `03 Legal` only |
 
-Four things worth opening:
+Five things worth opening:
 
 1. Sign in as the reader. The room opens at `03 Legal`, the folder they were
-   given, and the breadcrumbs do not name the folders above it. The other three
+   given, and the breadcrumbs do not name the folders above it. The other four
    folders are not drawn at all; open one of their URLs from the owner's session
    and it answers 404, not 403.
 2. As the owner, open `02 Financials / Q4 2025`. A banner says the folder is
@@ -30,9 +30,10 @@ Four things worth opening:
    the folder, not from the row.
 3. Open History on `Management accounts.pdf`, in `02 Financials / Q4 2025`. It
    has been re-issued once, so there are two versions: either can be opened, and
-   one click puts the older one back. Uploading a file whose name is already
-   taken is what produces that, and the queue asks per file: keep both, new
-   version, skip.
+   one click puts the older one back. Dropping files anywhere on the page starts
+   the upload, each with its own progress bar, and a name that is already taken
+   is asked about per file: keep both, new version, skip. A rename into a taken
+   name offers the free one rather than making you invent it.
 4. Type into the search field. It looks at the names of files and folders across
    the whole room and says where each one sits. As the reader it finds only what
    they were given.
@@ -42,7 +43,10 @@ Four things worth opening:
    what that column is usually asked, the second turns it round, the third puts
    the list back. Then open the lock at the end of the breadcrumb row: the
    headings come loose and can be dragged into another order, and stop sorting
-   while they are loose. Both are remembered.
+   while they are loose. The arrangement is remembered; the sort rides in the
+   URL, so a sorted folder can be sent to somebody as it looks.
+
+The interface is in English and Ukrainian, switched in the top bar.
 
 ![Rows that inherit their access](docs/screenshots/inherited.png)
 
@@ -76,12 +80,13 @@ Checks:
 
 ```bash
 npm run typecheck --workspaces      # api and web
-npm run test --workspaces --if-present   # 49 unit tests over the path, access and name rules
+npm run test --workspaces --if-present   # 69 unit tests: 49 over the path, access and name
+                                         # rules, 20 over the pager, sort and column layout
 npm run smoke --workspace @dataroom/api   # end to end against the real database and bucket
 ```
 
 `smoke` creates two throwaway accounts, walks the whole API including a real
-upload and download, asserts 69 things and deletes what it made. It needs a
+upload and download, asserts 98 things and deletes what it made. It needs a
 filled in `.env`, so CI runs the unit tests only.
 
 ## The data model
@@ -229,9 +234,9 @@ is the number this query already returns.
 **A room with 100,000 files and a deep tree.** Listing one folder is an index
 scan on the unique indexes that already enforce sibling names,
 `folders_parent_id_name_key` and `files_folder_id_name_key`; it does not care how
-large the room is, only how many children that one folder has. "Everything under this folder", which
-the delete manifest and the share sweep need, is one prefix scan on the index
-above.
+large the room is, only how many children that one folder has. "Everything under
+this folder", which the delete manifest and the share sweep need, is one prefix
+scan on `folders_path_idx`.
 
 Rejected: a plain adjacency list, where every listing walks the tree with a
 recursive CTE and gets slower as the tree deepens. Also rejected: a closure
@@ -246,8 +251,9 @@ Sorting happens in the database rather than on the page that came back. The
 biggest file on this page is not the biggest file in the folder, and a pager is
 what makes the difference between those two visible.
 
-A listing is one page of fifty rows, folders first and then files, both by name,
-and the count that feeds the pager carries the same filter as the rows so it can
+A listing is one page of fifty rows, folders first and then files, by name unless
+a sort is asked for, and the count that feeds the pager carries the same filter
+as the rows so it can
 never offer a page that comes back empty. Offset rather than keyset, and that is
 a choice rather than an oversight: a pager with numbers on it has to be able to
 jump to the seventh page, and keyset only knows how to go next. The price is that
@@ -361,13 +367,14 @@ the room makes for them.
 ![The history of a document](docs/screenshots/versions.png)
 
 **One breakpoint carries the responsive work.** Tailwind's own scale, unchanged,
-and only `sm` at 640px does anything: below it the toolbar breaks in two so the
+and `sm` at 640px does nearly all of it: below it the toolbar breaks in two so the
 folder name keeps a line to be read on, the buttons that act on a room drop their
 labels, and the padding steps down once. A table too wide for the screen scrolls
 inside its own box rather than taking the page with it, with a floor of 540px
-because below that the columns crush instead of reflowing. Checked at 390, 768,
-1024 and 1440: nothing overflows the page at any of them. The rules are written
-down in the design system.
+because below that the columns crush instead of reflowing. The one other use of
+`md` drops the size column from search results, where the name needs the room.
+Checked at 390, 768, 1024 and 1440: nothing overflows the page at any of them.
+The rules are written down in the design system.
 
 **A node you may not see answers 404, not 403.** A 403 would confirm that a
 folder with that id exists, which is exactly what a shared out data room must not
